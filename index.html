@@ -563,6 +563,21 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 /* Birthday + age display */
 .age-display{font-size:13px;color:var(--navy);font-weight:700;padding:6px 10px;background:var(--blue-soft);border-radius:6px;flex:1;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center}
 
+/* Nutrition / care plan display */
+.nut-calc-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 10px;background:var(--bg-soft);border:1px solid var(--border-soft);border-radius:7px;margin-bottom:8px}
+.nut-calc-row .nut-item{flex:1;min-width:80px;text-align:center}
+.nut-calc-row .nut-label{font-size:10.5px;color:var(--muted);font-weight:600}
+.nut-calc-row .nut-value{font-size:16px;font-weight:800;color:var(--navy);font-feature-settings:'tnum';margin-top:1px}
+.nut-calc-row .nut-value.target{color:var(--green)}
+
+/* Food/method icon select in grid */
+.icon-select{background:transparent;color:inherit;font-weight:inherit;width:100%;height:42px;border:none;font-size:13px;font-family:inherit;text-align:center;padding:2px;-webkit-appearance:none;appearance:none}
+.icon-select:focus{outline:2px solid var(--blue);background:#fff;border-radius:3px}
+
+/* Pct quick buttons with gram display */
+.pct-quick button .pct-g{display:block;font-size:8.5px;color:inherit;opacity:.7;font-weight:600;line-height:1;margin-top:2px;font-feature-settings:'tnum'}
+.pct-quick button.on .pct-g{opacity:.92}
+
 /* Visit (面会) styles */
 .visit-card{background:var(--bg-soft);border-radius:8px;padding:11px 13px;margin-bottom:10px;border:1px solid var(--border-soft);border-left:4px solid var(--sys-obs)}
 .visit-card.mood-relief{border-left-color:#27ae60}
@@ -790,11 +805,9 @@ body.printing #printView{display:block !important;position:relative;background:#
 <div id="screenDetail" class="screen hidden">
   <div class="form-hdr">
     <div class="fh-top">
-      <button class="btn-back" onclick="showList()">‹ 一覧</button>
-      <div class="hdr-title" id="dtTitle">—</div>
+      <div class="hdr-title" id="dtTitle" onclick="showList()" style="cursor:pointer" title="タップで患者一覧へ">—</div>
       <div class="weight-pill" id="dtWeight">— kg</div>
       <button class="btn-quick" id="btnUndo" onclick="undo()" title="元に戻す (⌘Z)" style="background:rgba(255,255,255,.13);color:#fff;min-width:36px;padding:5px 9px">↶</button>
-      <button class="btn-quick" onclick="openQuickRecord()" title="クイック記録">⚡ 記録</button>
       <button class="btn-round" onclick="openRound()" title="ラウンド開始">🚶 ラウンド</button>
     </div>
     <div class="fh-vitals" id="fhVitals"></div>
@@ -908,6 +921,67 @@ body.printing #printView{display:block !important;position:relative;background:#
             <button data-v="fear">怖がり</button>
             <button data-v="angry">怒りやすい</button>
             <button data-v="friendly">人懐っこい</button>
+          </div>
+        </div>
+      </div>
+      <div class="card sys-renal">
+        <div class="c-hdr">🍽 栄養管理・看護計画 <span class="c-hdr-en">NUTRITION CARE PLAN</span></div>
+        <div class="c-body">
+          <div class="nut-calc-row">
+            <div class="nut-item">
+              <div class="nut-label">RER</div>
+              <div class="nut-value" id="iRer">—</div>
+              <div style="font-size:9px;color:var(--muted);margin-top:1px">kcal/日</div>
+            </div>
+            <div class="nut-item">
+              <div class="nut-label">係数</div>
+              <input class="fin fin-sm" style="text-align:center;font-weight:800;font-size:15px;padding:4px 6px;min-height:32px" type="number" step="0.1" id="iRerMult" placeholder="1.0" onchange="recalcCarePlan()">
+              <div style="font-size:9px;color:var(--muted);margin-top:1px">維持=1.0 / 病態=0.8〜1.4</div>
+            </div>
+            <div class="nut-item">
+              <div class="nut-label">目標 kcal</div>
+              <div class="nut-value target" id="iTargetKcal">—</div>
+              <div style="font-size:9px;color:var(--muted);margin-top:1px">kcal/日</div>
+            </div>
+            <div class="nut-item">
+              <div class="nut-label">目標量</div>
+              <div class="nut-value target" id="iTargetG">—</div>
+              <div style="font-size:9px;color:var(--muted);margin-top:1px">g/日</div>
+            </div>
+          </div>
+          <div class="frow"><span class="flabel">フード名</span>
+            <input class="fin" id="iFoodName" placeholder="例: i/d 缶">
+          </div>
+          <div class="frow"><span class="flabel">カロリー</span>
+            <input class="fin fin-sm" type="number" id="iFoodKcal" onchange="recalcCarePlan()" placeholder="95">
+            <span class="unit">kcal/100g</span>
+            <span class="flabel" style="margin-left:auto">＝</span>
+            <span id="iFoodKcalPerG" style="font-size:13px;color:var(--navy);font-weight:700">— kcal/g</span>
+          </div>
+          <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">給餌方法</span>
+            <div class="btn-group" id="iFeedMethodBtns" style="flex:1">
+              <button data-v="bowl">🍽 器</button>
+              <button data-v="tube">🩺 経管 (NG/EG)</button>
+              <button data-v="peg">⚪ 胃瘻 (PEG)</button>
+              <button data-v="spoon">🥄 スプーン</button>
+              <button data-v="hand">✋ 手</button>
+              <button data-v="syringe">💉 シリンジ</button>
+            </div>
+          </div>
+          <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">フード処理</span>
+            <div class="btn-group" id="iFoodPrepBtns" style="flex:1">
+              <button data-v="dry">🌾 そのまま</button>
+              <button data-v="soaked">💧 ふやかし</button>
+              <button data-v="warm">🔥 温め</button>
+              <button data-v="mashed">🥣 ペースト</button>
+            </div>
+          </div>
+          <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">排泄場所</span>
+            <div class="btn-group" id="iToiletBtns" style="flex:1">
+              <button data-v="indoor">🏠 室内可</button>
+              <button data-v="outdoor">🚶 散歩のみ</button>
+              <button data-v="both">両方OK</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1779,6 +1853,15 @@ function loadIntoForm(){
   document.querySelectorAll('#iTempBtns button').forEach(b=>b.classList.toggle('on', b.dataset.v===p.temperament));
   // owner type (single-select)
   document.querySelectorAll('#iOwnerBtns button').forEach(b=>b.classList.toggle('on', b.dataset.v===(p.ownerType||'')));
+  // Care plan
+  p.carePlan = p.carePlan || {};
+  document.getElementById('iRerMult').value = p.carePlan.rerMultiplier ?? '';
+  document.getElementById('iFoodName').value = p.carePlan.foodName || '';
+  document.getElementById('iFoodKcal').value = p.carePlan.foodKcal100 ?? '';
+  document.querySelectorAll('#iFeedMethodBtns button').forEach(b=>b.classList.toggle('on', b.dataset.v===(p.carePlan.feedMethod||'')));
+  document.querySelectorAll('#iFoodPrepBtns button').forEach(b=>b.classList.toggle('on', b.dataset.v===(p.carePlan.foodPrep||'')));
+  document.querySelectorAll('#iToiletBtns button').forEach(b=>b.classList.toggle('on', b.dataset.v===(p.carePlan.toilet||'')));
+  recalcCarePlan();
   recalcAge();
   setTimeout(()=>{ autoExpand(document.getElementById('iDx')); autoExpand(document.getElementById('iGoal')); }, 50);
   const r = p.range||{};
@@ -2040,6 +2123,29 @@ function onBirthdayInput(el){
 }
 function autoExpand(el){ if (!el) return; el.style.height='auto'; el.style.height = el.scrollHeight + 'px' }
 
+/* Nutrition / care plan calculation */
+function recalcCarePlan(){
+  const p = state.patients[currentId]; if (!p) return;
+  p.carePlan = p.carePlan || {};
+  const w = num(document.getElementById('iWeight').value) || p.bodyWeight;
+  const mult = parseFloat(document.getElementById('iRerMult').value) || 1.0;
+  const foodKcal100 = parseFloat(document.getElementById('iFoodKcal').value);
+  const rer = (w && w > 0) ? Math.round(70 * Math.pow(w, 0.75)) : null;
+  const targetKcal = rer ? Math.round(rer * mult) : null;
+  const kcalPerG = foodKcal100 ? (foodKcal100 / 100) : null;
+  const targetG = (targetKcal && kcalPerG) ? Math.round(targetKcal / kcalPerG) : null;
+  document.getElementById('iRer').textContent = rer ?? '—';
+  document.getElementById('iTargetKcal').textContent = targetKcal ?? '—';
+  document.getElementById('iTargetG').textContent = targetG ?? '—';
+  document.getElementById('iFoodKcalPerG').textContent = kcalPerG ? `${kcalPerG.toFixed(2)} kcal/g` : '— kcal/g';
+  p.carePlan.rerMultiplier = mult;
+  p.carePlan.foodKcal100 = foodKcal100 || null;
+  p.carePlan.foodName = document.getElementById('iFoodName').value;
+  p.carePlan.rer = rer;
+  p.carePlan.targetKcal = targetKcal;
+  p.carePlan.targetG = targetG;
+}
+
 // Species/sex/disease/temperament button group click handlers
 document.addEventListener('click', e=>{
   const sp = e.target.closest('#iSpeciesBtns button');
@@ -2074,6 +2180,43 @@ document.addEventListener('click', e=>{
     document.querySelectorAll('#iOwnerBtns button').forEach(b=>b.classList.remove('on'));
     if (!wasOn) ow.classList.add('on');
     if (currentId){ pushUndo('飼い主タイプ変更'); saveCurrent(false); renderHeaderMeta() }
+    return;
+  }
+  // Care plan button groups
+  const fm = e.target.closest('#iFeedMethodBtns button');
+  if (fm){
+    const wasOn = fm.classList.contains('on');
+    document.querySelectorAll('#iFeedMethodBtns button').forEach(b=>b.classList.remove('on'));
+    if (!wasOn) fm.classList.add('on');
+    if (currentId){
+      const p = state.patients[currentId]; p.carePlan = p.carePlan || {};
+      p.carePlan.feedMethod = wasOn ? '' : fm.dataset.v;
+      pushUndo('給餌方法変更'); saveCurrent(false); renderVitalsGrid(); renderIoGrid();
+    }
+    return;
+  }
+  const fp = e.target.closest('#iFoodPrepBtns button');
+  if (fp){
+    const wasOn = fp.classList.contains('on');
+    document.querySelectorAll('#iFoodPrepBtns button').forEach(b=>b.classList.remove('on'));
+    if (!wasOn) fp.classList.add('on');
+    if (currentId){
+      const p = state.patients[currentId]; p.carePlan = p.carePlan || {};
+      p.carePlan.foodPrep = wasOn ? '' : fp.dataset.v;
+      pushUndo('フード処理変更'); saveCurrent(false); renderVitalsGrid(); renderIoGrid();
+    }
+    return;
+  }
+  const tt = e.target.closest('#iToiletBtns button');
+  if (tt){
+    const wasOn = tt.classList.contains('on');
+    document.querySelectorAll('#iToiletBtns button').forEach(b=>b.classList.remove('on'));
+    if (!wasOn) tt.classList.add('on');
+    if (currentId){
+      const p = state.patients[currentId]; p.carePlan = p.carePlan || {};
+      p.carePlan.toilet = wasOn ? '' : tt.dataset.v;
+      pushUndo('排泄場所変更'); saveCurrent(false);
+    }
     return;
   }
 });
@@ -2177,7 +2320,21 @@ function setFoodPct(t, v){
   pushUndo('食事%');
   const p = state.patients[currentId]; p.inout = p.inout||[];
   const r = ensureRecordAt(p.inout, t, {foodType:'',foodPct:null,water:null,urine:null,urinePresent:'',stoolScore:null,stoolPresent:'',note:''});
-  r.foodPct = (r.foodPct === v) ? null : v;
+  if (r.foodPct === v){
+    r.foodPct = null;
+    // Clear gram only if auto-set previously
+    if (r._foodGramAuto) { r.foodGram = null; r._foodGramAuto = false }
+  } else {
+    r.foodPct = v;
+    // Auto-set foodGram from care plan target
+    const targetG = p.carePlan?.targetG;
+    if (targetG){
+      r.foodGram = Math.round(targetG * v / 100);
+      r._foodGramAuto = true;
+    }
+    // Also default foodName from care plan if not set
+    if (!r.foodName && p.carePlan?.foodName) r.foodName = p.carePlan.foodName;
+  }
   saveState(); renderVitalsGrid(); renderIoGrid();
 }
 // Add a new time column (defaults to now, prompts for time)
@@ -2386,13 +2543,18 @@ function renderIoGrid(){
     return;
   }
   let html = `<thead>${timeHeaderHTML(times, "addTimeColumn('io')", true, 'delTimeColIo')}</thead><tbody>`;
-  // 食事% (vertical)
+  // 食事% (vertical) with gram display
+  const targetG = p.carePlan?.targetG;
   html += `<tr class="row-food"><th class="label">食事 %</th>`;
   times.forEach(t=>{
     const io = findRecordAt(p.inout, t);
     const v = io?.foodPct;
     html += `<td class="time" style="padding:0"><div class="pct-quick">`;
-    [0,25,50,75,100].forEach(pc=>{ html += `<button class="${v===pc?'on':''}" onclick="setFoodPct('${t}',${pc})">${pc}</button>` });
+    [0,25,50,75,100].forEach(pc=>{
+      const g = targetG ? Math.round(targetG * pc / 100) : null;
+      const gSub = g!=null ? `<span class="pct-g">${g}g</span>` : '';
+      html += `<button class="${v===pc?'on':''}" onclick="setFoodPct('${t}',${pc})">${pc}${gSub}</button>`;
+    });
     html += `</div></td>`;
   });
   html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
@@ -2404,6 +2566,32 @@ function renderIoGrid(){
     const fg = io?.foodGram;
     const disp = fn ? `<span class="fn">${escapeHtml(fn)}</span>${fg!=null?`<span class="fg">${fg}g</span>`:''}` : '＋';
     html += `<td class="time" style="padding:0"><button class="food-cell-btn ${fn?'':'empty'}" onclick="openFoodPicker('${t}')">${disp}</button></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 給餌方法
+  const feedDef = p.carePlan?.feedMethod || '';
+  const FEED_LABELS = {bowl:'🍽器', tube:'🩺経管', peg:'⚪胃瘻', spoon:'🥄スプ', hand:'✋手', syringe:'💉ｼﾘﾝｼﾞ'};
+  html += `<tr><th class="label">給餌方法</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const m = io?.feedMethod ?? feedDef ?? '';
+    html += `<td class="time" style="padding:0"><select class="icon-select" onchange="setIoAt('${t}','feedMethod',this.value)">
+      <option value="">—</option>
+      ${Object.entries(FEED_LABELS).map(([k,l])=>`<option value="${k}" ${m===k?'selected':''}>${l}</option>`).join('')}
+    </select></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // フード処理
+  const prepDef = p.carePlan?.foodPrep || '';
+  const PREP_LABELS = {dry:'🌾そのまま', soaked:'💧ふやかし', warm:'🔥温め', mashed:'🥣ペースト'};
+  html += `<tr><th class="label">フード処理</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const m = io?.foodPrep ?? prepDef ?? '';
+    html += `<td class="time" style="padding:0"><select class="icon-select" onchange="setIoAt('${t}','foodPrep',this.value)">
+      <option value="">—</option>
+      ${Object.entries(PREP_LABELS).map(([k,l])=>`<option value="${k}" ${m===k?'selected':''}>${l}</option>`).join('')}
+    </select></td>`;
   });
   html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
   // 飲水 mL
@@ -4797,6 +4985,7 @@ function deletePatient(){
    AUTO-SAVE
    ============================================================ */
 const INFO_IDS = ['iPid','iName','iBreed','iBirthday','iWeight','iAdmit','iDoc','iCondition','iDx','iGoal',
+ 'iRerMult','iFoodName','iFoodKcal',
  'rTempL','rTempH','rHrL','rHrH','rRrL','rRrH','rSpL','rSpH'];
 document.addEventListener('change', (e)=>{
   if (e.target && INFO_IDS.includes(e.target.id) && currentId){
