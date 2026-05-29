@@ -399,7 +399,7 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 .list-card .lc-hdr{display:flex;gap:7px;align-items:center;margin-bottom:6px}
 
 /* TOAST */
-.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(20px);background:rgba(30,58,95,.96);color:#fff;padding:10px 22px;border-radius:24px;font-size:13.5px;font-weight:700;z-index:1000;opacity:0;transition:all .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(20px);background:rgba(30,58,95,.96);color:#fff;padding:10px 22px;border-radius:24px;font-size:13.5px;font-weight:700;z-index:1000;opacity:0;transition:all .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:pre-line;text-align:center;max-width:90vw;line-height:1.45}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.err{background:rgba(192,57,43,.96)}
 .toast.ok{background:rgba(22,160,133,.96)}
@@ -3517,14 +3517,34 @@ function roundNext(){
 function roundBack(){ if (roundState && roundState.step > 1) goToRoundStep(roundState.step - 1) }
 
 function finishRound(){
-  if (!roundState || !currentId) return;
+  if (!roundState || !currentId){
+    console.warn('[Round] finishRound: missing state', {roundState, currentId});
+    toast('ラウンド情報が見つかりません','err');
+    return;
+  }
+  // Final sync from inputs (in case user goes straight to 完了 without 次へ on step 1/2/4)
+  roundState.at = document.getElementById('rwAt').value || roundState.at || nowLocalISO();
+  roundState.staff = document.getElementById('rwStaff').value.trim();
+  const wVal = document.getElementById('rwWater').value;
+  if (wVal !== '') roundState.inout.water = num(wVal);
+  const uVal = document.getElementById('rwUrineVol').value;
+  if (uVal !== '') roundState.inout.urineVol = num(uVal);
+  roundState.notes.text = document.getElementById('rwNote').value || '';
+  // Also re-read vital input fields (in case onRoundVitalInput didn't fire for some browsers)
+  ['temp','hr','rr','spo2'].forEach(k=>{
+    const inp = document.getElementById('rwV_'+k);
+    if (inp && inp.value !== '') roundState.vitals[k] = num(inp.value);
+  });
+
+  console.log('[Round] state at finish:', JSON.parse(JSON.stringify(roundState)));
+
   const p = state.patients[currentId];
   pushUndo('ラウンド記録');
   const at = roundState.at;
   const staff = roundState.staff;
   let vCount = 0, ioCount = 0, medDone = 0, noteAdded = false;
 
-  // Vitals - merge into existing or create new
+  // Vitals
   const v = roundState.vitals;
   const hasVital = ['temp','hr','rr','spo2'].some(k=>v[k]!=null);
   if (hasVital){
@@ -3539,30 +3559,38 @@ function finishRound(){
     vCount = ['temp','hr','rr','spo2'].filter(k=>v[k]!=null).length;
   }
 
-  // In/Out - merge
+  // In/Out
   const io = roundState.inout;
-  const ioKeysSet = {
+  const ioData = {
     foodPct: io.foodPct,
     water: io.water,
-    urinePresent: io.urinePresent || null,
+    urinePresent: io.urinePresent || '',
     urine: io.urineVol,
-    stoolPresent: io.stoolPresent || null,
+    stoolPresent: io.stoolPresent || '',
     stoolScore: io.stoolScore,
   };
-  const hasIo = Object.values(ioKeysSet).some(x=>x!=null && x!=='');
+  const hasIo = Object.entries(ioData).some(([k,val])=>{
+    if (k==='urinePresent' || k==='stoolPresent') return val && val !== '';
+    return val != null;
+  });
   if (hasIo){
     p.inout = p.inout || [];
     let ex = p.inout.find(x=>x.at === at);
     if (ex){
-      Object.entries(ioKeysSet).forEach(([k,val])=>{ if (val!=null && val!=='') ex[k] = val });
+      Object.entries(ioData).forEach(([k,val])=>{
+        if (val!=null && val!=='') ex[k] = val;
+      });
     } else {
-      p.inout.push({ at, foodType:'', ...ioKeysSet, note:'' });
+      p.inout.push({ at, foodType:'', ...ioData, note:'' });
     }
-    ioCount = Object.values(ioKeysSet).filter(x=>x!=null && x!=='').length;
+    ioCount = Object.entries(ioData).filter(([k,val])=>{
+      if (k==='urinePresent' || k==='stoolPresent') return val && val !== '';
+      return val != null;
+    }).length;
   }
 
   // Mark meds done
-  roundState.medChecks.forEach(m=>{
+  (roundState.medChecks||[]).forEach(m=>{
     if (m.checked && p.meds[m.idx]){
       p.meds[m.idx].done = true;
       if (staff) p.meds[m.idx].staff = staff;
@@ -3584,15 +3612,24 @@ function finishRound(){
   }
 
   saveState();
+  console.log('[Round] Saved. Counts:', {vCount, ioCount, medDone, noteAdded});
+  console.log('[Round] p.vitals.length now:', p.vitals?.length);
+
   closeModal('roundModal');
   roundState = null;
 
-  // Refresh
-  loadIntoForm();
-  const active = document.querySelector('.tab.on')?.dataset.tab;
-  if (active) switchTab(active);
+  // Force full refresh
+  try {
+    loadIntoForm();
+    const active = document.querySelector('.tab.on')?.dataset.tab;
+    if (active) switchTab(active);
+  } catch(e){ console.error('[Round] refresh error:', e) }
 
-  toast(`✅ ラウンド完了 ${fmtDT(at)}${staff?' '+staff:''}\nバイタル${vCount} / I/O${ioCount} / 投薬${medDone}件 / メモ${noteAdded?'1':'0'}`,'ok');
+  const total = vCount + ioCount + medDone + (noteAdded?1:0);
+  const summary = total === 0
+    ? '※ 何も記録されませんでした\n値を入力してから完了してください'
+    : `バイタル${vCount} / I/O${ioCount} / 投薬${medDone}件 / メモ${noteAdded?'1':'0'}`;
+  toast(`✅ ラウンド完了 ${fmtDT(at)}${staff?' '+staff:''}\n${summary}`, total===0?'err':'ok');
 }
 
 /* ============================================================
