@@ -642,6 +642,14 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 .lab-items button{padding:5px 9px;font-size:11.5px;background:#fff;border:1px solid var(--border);color:var(--text2);border-radius:12px;cursor:pointer;font-weight:600;font-family:inherit}
 .lab-items button:active,.lab-items button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
 .lab-section-title{font-size:11px;font-weight:800;color:var(--muted);margin:8px 0 4px;letter-spacing:.4px;text-transform:uppercase}
+.lab-item-group{margin-bottom:7px}
+.lab-item-group-title{font-size:10.5px;font-weight:800;color:var(--navy);margin-bottom:3px;letter-spacing:.3px;padding-left:2px;border-left:3px solid var(--blue);padding-left:6px}
+
+/* Lab set editor - clickable items pool */
+.lse-pool{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding:6px;background:#fff;border:1px dashed var(--border);border-radius:5px;max-height:120px;overflow-y:auto}
+.lse-pool button{padding:4px 8px;font-size:11px;background:var(--bg-soft);border:1px solid var(--border);color:var(--text2);border-radius:10px;cursor:pointer;font-weight:600;font-family:inherit}
+.lse-pool button:active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.lse-pool-title{font-size:10.5px;color:var(--muted);font-weight:700;margin-top:6px}
 
 /* Multi-lab stacked queue */
 .lab-queue{background:var(--bg-soft);border-radius:8px;padding:7px;margin:10px 0;border:1px solid var(--border-soft)}
@@ -1074,7 +1082,7 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
         <div class="tgl" id="lbUrgent" onclick="this.classList.toggle('on')"></div>
       </div>
       <div class="frow"><span class="flabel">種別</span>
-        <select class="fin fin-md" id="lbType" onchange="renderLabItemButtons()">
+        <select class="fin fin-md" id="lbType" onfocus="this.dataset.prev=this.value" onchange="renderLabItemButtons(this.dataset.prev);this.dataset.prev=this.value">
           <option value="血液">血液</option>
           <option value="尿">尿</option>
           <option value="便">便</option>
@@ -2665,14 +2673,38 @@ function renderLabs(){
     `合計 ${p.labs.length}件 / 緊急未完了 ${urgent}件 / 異常値あり ${abnormal}件`;
 }
 
-/* Lab presets - editable per hospital */
+/* Lab common items - grouped by category for easier selection */
 const LAB_COMMON_ITEMS = {
-  '血液':['CBC','生化','CRP','SAA','cPL','fPL','TLI','T4','BNP','電解質','血糖','乳酸','血ガス','凝固','D-dimer','アンモニア','胆汁酸'],
-  '尿':['尿比重','pH','蛋白','糖','ケトン','dipstick','沈渣','UPC','尿培養'],
-  '便':['寄生虫','培養','Giardia抗原','クロストリジウム','パルボ抗原'],
-  '画像':['胸部X線','腹部X線','全身X線','腹部エコー','心エコー','CT','MRI','造影','関節X線'],
-  '病理':['細胞診','病理組織','免疫染色','FNA'],
-  'その他':[]
+  '血液': {
+    'CBC・血算': ['CBC','白血球分画','Hct','血小板','網状赤血球'],
+    '生化（基本）': ['ALT','AST','BUN','Cre','電解質','GLU'],
+    '生化（詳細）': ['ALP','GGT','T-Bil','SDMA','P','Ca','T-Pro','Alb','T-Cho','TG'],
+    '炎症': ['CRP','SAA'],
+    '膵・肝': ['cPL','fPL','TLI','アミラーゼ','リパーゼ','アンモニア','胆汁酸'],
+    '内分泌': ['T4','fT4','TSH','コルチゾール','ACTH','インスリン'],
+    '心': ['BNP','トロポニン'],
+    'ガス・凝固': ['血ガス','乳酸','PT/APTT','D-dimer','フィブリノゲン'],
+    '感染症': ['血液培養','FIV検査','FeLV検査','SDMA','Lepto抗体']
+  },
+  '尿': {
+    '基本': ['尿比重','尿pH','dipstick','沈渣'],
+    '詳細': ['UPC','尿蛋白','尿糖','ケトン','血尿','尿培養']
+  },
+  '便': {
+    '基本': ['潜血','色調','寄生虫'],
+    '感染症': ['Giardia抗原','クロストリジウム','パルボ抗原','コロナ抗原'],
+    '培養': ['細菌培養','カンピロバクター']
+  },
+  '画像': {
+    'X線': ['胸部X線','腹部X線','全身X線','関節X線','頸部X線'],
+    '超音波': ['腹部エコー','心エコー','膀胱エコー','心エコー'],
+    'CT/MRI': ['単純CT','造影CT','MRI']
+  },
+  '病理': {
+    '一般': ['細胞診','病理組織','FNA'],
+    '特殊': ['免疫染色','PCR','PARR']
+  },
+  'その他': {}
 };
 const DEFAULT_LAB_SETS = [
   {name:'ER緊急セット', type:'血液', items:['CBC','生化','CRP','血ガス','乳酸']},
@@ -2705,12 +2737,31 @@ function renderLabSets(){
   }
 }
 
-function renderLabItemButtons(){
+function renderLabItemButtons(prevType){
   const type = document.getElementById('lbType').value;
-  const items = LAB_COMMON_ITEMS[type] || [];
+  // 種別が変わった時は混在防止のため項目欄をクリア
+  if (prevType && prevType !== type){
+    const itemsInput = document.getElementById('lbItems');
+    if (itemsInput.value.trim()){
+      itemsInput.value = '';
+      toast(`種別を${type}に変更したため項目をクリアしました`, 'ok');
+    }
+  }
+  const groups = LAB_COMMON_ITEMS[type] || {};
   const c = document.getElementById('lbItemBtns');
-  if (!items.length){ c.innerHTML = `<span style="font-size:11px;color:var(--muted);font-style:italic">この種別の個別項目なし。自由入力でどうぞ。</span>`; }
-  else c.innerHTML = items.map(it=>`<button data-item="${escapeHtml(it)}" onclick="appendLabItem(this.dataset.item)">${escapeHtml(it)}</button>`).join('');
+  const groupKeys = Object.keys(groups);
+  if (!groupKeys.length){
+    c.innerHTML = `<span style="font-size:11px;color:var(--muted);font-style:italic">この種別の個別項目なし。自由入力でどうぞ。</span>`;
+  } else {
+    c.innerHTML = groupKeys.map(sub=>`
+      <div class="lab-item-group">
+        <div class="lab-item-group-title">${escapeHtml(sub)}</div>
+        <div class="lab-items">
+          ${groups[sub].map(it=>`<button data-item="${escapeHtml(it)}" onclick="appendLabItem(this.dataset.item)">${escapeHtml(it)}</button>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
   renderLabSets();
 }
 
@@ -2810,21 +2861,44 @@ function openLabSetEditor(){
 function renderLabSetEditor(){
   const c = document.getElementById('lseList');
   if (!editingLabSets.length){ c.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:12px;padding:12px">セット未登録</div>`; return }
-  c.innerHTML = editingLabSets.map((s,i)=>`<div style="background:var(--bg-soft);border-radius:7px;padding:9px;margin-bottom:7px;border:1px solid var(--border-soft)">
-    <div style="display:flex;gap:5px;align-items:center;margin-bottom:5px">
-      <input value="${escapeHtml(s.name)}" placeholder="セット名" oninput="editingLabSets[${i}].name=this.value" style="flex:1;font-size:13px;font-weight:700;border:1.5px solid var(--border);padding:6px 8px;border-radius:5px;font-family:inherit">
-      <select onchange="editingLabSets[${i}].type=this.value" style="font-size:12px;padding:6px;border:1.5px solid var(--border);border-radius:5px;font-family:inherit">
-        <option value="血液" ${s.type==='血液'?'selected':''}>血液</option>
-        <option value="尿" ${s.type==='尿'?'selected':''}>尿</option>
-        <option value="便" ${s.type==='便'?'selected':''}>便</option>
-        <option value="画像" ${s.type==='画像'?'selected':''}>画像</option>
-        <option value="病理" ${s.type==='病理'?'selected':''}>病理</option>
-        <option value="その他" ${s.type==='その他'?'selected':''}>その他</option>
-      </select>
-      <button onclick="removeLabSetRow(${i})" style="background:none;border:none;color:var(--red);font-size:15px;cursor:pointer;padding:4px">🗑</button>
-    </div>
-    <textarea oninput="editingLabSets[${i}].items=this.value.split(/[,、\\n]+/).map(x=>x.trim()).filter(Boolean)" style="width:100%;font-size:12px;padding:6px 8px;border:1.5px solid var(--border);border-radius:5px;min-height:40px;font-family:inherit" placeholder="項目をカンマ区切りで">${s.items.join(', ')}</textarea>
-  </div>`).join('');
+  c.innerHTML = editingLabSets.map((s,i)=>{
+    // Common items for this set's type, flattened
+    const groups = LAB_COMMON_ITEMS[s.type] || {};
+    const allItems = Object.values(groups).flat();
+    const itemsInSet = new Set(s.items);
+    const poolBtns = allItems.length ? `
+      <div class="lse-pool-title">📌 候補項目（タップで追加）</div>
+      <div class="lse-pool">
+        ${allItems.map(it=>{
+          const inSet = itemsInSet.has(it);
+          return `<button data-i="${i}" data-item="${escapeHtml(it)}" onclick="toggleLabSetItem(${i},'${escapeHtml(it)}')" style="${inSet?'background:var(--teal);color:#fff;border-color:var(--teal)':''}">${escapeHtml(it)}${inSet?' ✓':''}</button>`;
+        }).join('')}
+      </div>` : '';
+    return `<div style="background:var(--bg-soft);border-radius:7px;padding:9px;margin-bottom:7px;border:1px solid var(--border-soft)">
+      <div style="display:flex;gap:5px;align-items:center;margin-bottom:5px">
+        <input value="${escapeHtml(s.name)}" placeholder="セット名" oninput="editingLabSets[${i}].name=this.value" style="flex:1;font-size:13px;font-weight:700;border:1.5px solid var(--border);padding:6px 8px;border-radius:5px;font-family:inherit">
+        <select onchange="editingLabSets[${i}].type=this.value;renderLabSetEditor()" style="font-size:12px;padding:6px;border:1.5px solid var(--border);border-radius:5px;font-family:inherit">
+          <option value="血液" ${s.type==='血液'?'selected':''}>血液</option>
+          <option value="尿" ${s.type==='尿'?'selected':''}>尿</option>
+          <option value="便" ${s.type==='便'?'selected':''}>便</option>
+          <option value="画像" ${s.type==='画像'?'selected':''}>画像</option>
+          <option value="病理" ${s.type==='病理'?'selected':''}>病理</option>
+          <option value="その他" ${s.type==='その他'?'selected':''}>その他</option>
+        </select>
+        <button onclick="removeLabSetRow(${i})" style="background:none;border:none;color:var(--red);font-size:15px;cursor:pointer;padding:4px">🗑</button>
+      </div>
+      <textarea oninput="editingLabSets[${i}].items=this.value.split(/[,、\\n]+/).map(x=>x.trim()).filter(Boolean)" style="width:100%;font-size:12px;padding:6px 8px;border:1.5px solid var(--border);border-radius:5px;min-height:40px;font-family:inherit" placeholder="項目をカンマ区切りで（直接編集も可）">${s.items.join(', ')}</textarea>
+      ${poolBtns}
+    </div>`;
+  }).join('');
+}
+
+function toggleLabSetItem(setIdx, item){
+  const s = editingLabSets[setIdx]; if (!s) return;
+  const i = s.items.indexOf(item);
+  if (i >= 0) s.items.splice(i, 1);
+  else s.items.push(item);
+  renderLabSetEditor();
 }
 function addLabSetRow(){
   editingLabSets.push({name:'新セット', type:'血液', items:[]});
