@@ -545,6 +545,30 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 .med-list-row .col-hdr{font-size:10px;color:var(--muted);font-weight:700;padding:0 4px;text-transform:uppercase;letter-spacing:.4px}
 .med-list-head{display:grid;grid-template-columns:1fr 60px 70px 72px 24px;gap:5px;padding:0 7px 4px;font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.4px;text-transform:uppercase}
 .med-list-empty{padding:10px;text-align:center;color:var(--muted);font-size:12px;font-style:italic}
+
+/* Fluid quick-add preset grid */
+.fluid-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.fluid-presets button{padding:14px 6px;background:var(--bg-soft);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-weight:800;font-size:14px;color:var(--navy);font-family:inherit;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.fluid-presets button .fp-sub{font-size:10.5px;color:var(--muted);font-weight:500;line-height:1.1}
+.fluid-presets button:active{background:var(--blue-soft);border-color:var(--blue);transform:scale(.96)}
+
+/* Lab order common items / set buttons */
+.lab-sets{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.lab-sets button{padding:8px 11px;font-size:12.5px;background:#eef5fb;border:1.5px solid #cce0f0;color:var(--navy);border-radius:18px;cursor:pointer;font-weight:700;font-family:inherit}
+.lab-sets button:active{background:var(--blue);color:#fff}
+.lab-items{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.lab-items button{padding:5px 9px;font-size:11.5px;background:#fff;border:1px solid var(--border);color:var(--text2);border-radius:12px;cursor:pointer;font-weight:600;font-family:inherit}
+.lab-items button:active,.lab-items button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.lab-section-title{font-size:11px;font-weight:800;color:var(--muted);margin:8px 0 4px;letter-spacing:.4px;text-transform:uppercase}
+
+/* Multi-lab stacked queue */
+.lab-queue{background:var(--bg-soft);border-radius:8px;padding:7px;margin:10px 0;border:1px solid var(--border-soft)}
+.lab-queue-row{display:flex;gap:6px;align-items:center;background:#fff;border-radius:5px;padding:6px 9px;margin-bottom:4px;font-size:12px;border-left:3px solid var(--navy)}
+.lab-queue-row.urgent{border-left-color:var(--red)}
+.lab-queue-row .lq-type{font-weight:800;color:var(--navy);min-width:42px}
+.lab-queue-row .lq-items{flex:1;color:var(--text);font-size:11.5px}
+.lab-queue-row .del{background:none;border:none;color:#c5cad3;font-size:14px;cursor:pointer;padding:2px 6px}
+.lab-queue-empty{text-align:center;color:var(--muted);font-size:11px;padding:6px;font-style:italic}
 @media (max-width:520px){
   .med-list-row,.med-list-head{grid-template-columns:1fr 50px 56px 62px 22px;gap:3px}
   .med-list-row input,.med-list-row select{font-size:12px;padding:5px 2px}
@@ -796,20 +820,6 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
           <table class="hgrid-tbl" id="vGrid"></table>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--muted);padding:0 14px 12px;line-height:1.6">
-        ※ 縦＝項目、横＝時刻。基準範囲外は赤ハイライト。<br>
-        ※ 食事%は0/25/50/75/100ワンタップ、尿/便は○タップで記録、便スコアは色付プルダウン。
-      </div>
-      <div style="margin:0 14px 18px;background:var(--bg-soft);border-radius:8px;padding:10px;border:1px solid var(--border-soft)">
-        <div style="font-size:11.5px;color:var(--text2);margin-bottom:6px;font-weight:700">便スコア凡例（水分量グラデーション）</div>
-        <div class="stool-pal" style="pointer-events:none">
-          <div class="stool-i st-1">1</div><div class="stool-i st-2">2</div>
-          <div class="stool-i st-3">3</div><div class="stool-i st-4">4</div>
-          <div class="stool-i st-5">5</div><div class="stool-i st-6">6</div>
-          <div class="stool-i st-7">7</div>
-        </div>
-        <div class="stool-legend"><span>← 硬便/便秘</span><span>正常</span><span>水様便 →</span></div>
-      </div>
     </div>
 
     <!-- IN/OUT PANEL (horizontal: rows=items, cols=time) -->
@@ -825,9 +835,6 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
           <table class="hgrid-tbl" id="ioGrid"></table>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--muted);padding:0 14px 18px;line-height:1.6">
-        ※ 食事内容や備考も同時に記録できます。バイタル側で打った値もここに表示されます（時刻が一致する場合）。
-      </div>
     </div>
 
     <!-- TREATMENT PANEL (horizontal: rows=drugs, cols=time) -->
@@ -836,17 +843,13 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
         <div class="hgrid-ctrl">
           <button class="btn btn-sm" onclick="openBulkMedScheduler()">💊 薬剤一括予定</button>
           <button class="btn btn-sm btn-sec" onclick="openScheduler('med')">📅 単一予定</button>
-          <button class="btn btn-sm btn-sec" onclick="addFluidDrug()">＋ 輸液</button>
+          <button class="btn btn-sm btn-sec" onclick="openFluidModal()">＋ 輸液</button>
           <button class="btn btn-sm btn-sec" onclick="addTimeColumn('tx')">＋ 時刻</button>
           <span class="meta" id="txGridMeta"></span>
         </div>
         <div class="hgrid-scroll" id="txGridScroll">
           <table class="hgrid-tbl" id="txGrid"></table>
         </div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);padding:0 14px 18px;line-height:1.6">
-        ※ 薬剤＝1行。投薬時刻のセルをタップで「✓ 実施」、もう一度タップで予定に戻す。<br>
-        ※ 輸液は速度(mL/h)を直接編集。0を入れると終了扱い。投薬予定時刻超過は赤で点滅。
       </div>
     </div>
 
@@ -857,10 +860,6 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
         <div style="margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:600" id="labStat"></div>
       </div>
       <div class="lab-cols" id="labCols"></div>
-      <div style="font-size:11px;color:var(--muted);padding:0 14px 18px;line-height:1.6">
-        ※ カードクリックで状態変更・結果入力。<br>
-        🚨 緊急依頼は赤帯表示。結果値の異常マーク（↑↓）は基準範囲から自動判定。
-      </div>
     </div>
 
     <!-- NOTES PANEL -->
@@ -955,9 +954,6 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
   </div>
 </div>
 
-<!-- FAB (Pass-fix #2: prominent quick record) -->
-<button class="fab hidden" id="fab" onclick="openQuickRecord()" aria-label="クイック記録">⚡<div class="fab-label">⚡ クイック記録 (TPR入力)</div></button>
-
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -994,33 +990,40 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
         <div class="tgl" id="lbUrgent" onclick="this.classList.toggle('on')"></div>
       </div>
       <div class="frow"><span class="flabel">種別</span>
-        <select class="fin fin-md" id="lbType">
-          <option value="血液">血液検査</option>
-          <option value="尿">尿検査</option>
-          <option value="便">便検査</option>
-          <option value="画像">画像検査</option>
+        <select class="fin fin-md" id="lbType" onchange="renderLabItemButtons()">
+          <option value="血液">血液</option>
+          <option value="尿">尿</option>
+          <option value="便">便</option>
+          <option value="画像">画像</option>
           <option value="病理">病理</option>
           <option value="その他">その他</option>
         </select>
         <span class="flabel">外注</span>
         <div class="tgl" id="lbExt" onclick="this.classList.toggle('on')"></div>
       </div>
+
+      <div class="lab-section-title">📋 セット (タップで項目追加)</div>
+      <div class="lab-sets" id="lbSets"></div>
+
+      <div class="lab-section-title">🩸 個別項目 (タップで追加)</div>
+      <div class="lab-items" id="lbItemBtns"></div>
+
       <div class="frow"><span class="flabel">項目</span>
-        <input class="fin" id="lbItems" placeholder="CBC, 生化, CRP, cPL 等"></div>
+        <input class="fin" id="lbItems" placeholder="CBC, 生化 等（直接入力可）"></div>
       <div class="frow"><span class="flabel">指示医</span>
         <input class="fin" id="lbDoc"></div>
       <div class="frow"><span class="flabel">状態</span>
         <div class="seg" id="lbStatus">
-          <div class="seg-i on" data-st="ordered">📋 依頼</div>
-          <div class="seg-i" data-st="collected">💉 採取</div>
-          <div class="seg-i" data-st="awaiting">⏳ 結果待</div>
-          <div class="seg-i" data-st="reported">✅ 結果</div>
+          <div class="seg-i on" data-st="ordered">依頼</div>
+          <div class="seg-i" data-st="collected">採取</div>
+          <div class="seg-i" data-st="awaiting">結果待</div>
+          <div class="seg-i" data-st="reported">結果</div>
         </div>
       </div>
       <div style="margin-top:8px;padding:9px;background:var(--bg-soft);border-radius:8px;border:1px solid var(--border-soft)">
         <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:5px">結果・所見</div>
-        <textarea class="ftxt" id="lbResult" placeholder="WBC↑ 18500 (4000-15000)&#10;CRP↑ 7.2 mg/dL&#10;..."></textarea>
-        <div style="font-size:10.5px;color:var(--muted);margin-top:4px">↑/↓ を含めると一覧で異常マーク表示</div>
+        <textarea class="ftxt" id="lbResult" placeholder="WBC↑ 18500、CRP↑ 7.2..."></textarea>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:4px">↑/↓ で異常マーク</div>
       </div>
       <div class="frow" style="margin-top:8px"><span class="flabel">備考</span>
         <input class="fin" id="lbNote"></div>
@@ -1031,9 +1034,28 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-danger" onclick="deleteLab()" id="lbDelBtn" style="margin-right:auto;display:none">🗑 削除</button>
-      <button class="btn btn-sec" onclick="closeModal('labModal')">キャンセル</button>
+      <button class="btn btn-sec btn-sm" onclick="openLabSetEditor()" style="margin-right:auto">✏️ セット編集</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteLab()" id="lbDelBtn" style="display:none">🗑 削除</button>
+      <button class="btn btn-sec" onclick="closeModal('labModal')">閉じる</button>
+      <button class="btn btn-warn btn-sm" onclick="saveLabAndAddNext()" id="lbSaveNext">💾 保存して次へ</button>
       <button class="btn" onclick="saveLab()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- LAB SET EDITOR MODAL -->
+<div class="modal-bg" id="labSetEditor">
+  <div class="modal">
+    <div class="modal-hdr">📋 検査セット編集 <button class="modal-x" onclick="closeModal('labSetEditor')">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">病院ごとのセットを編集。データはこの端末に保存されます。</div>
+      <div id="lseList"></div>
+      <button class="btn btn-sec btn-sm" onclick="addLabSetRow()" style="width:100%;margin-top:8px">＋ 新しいセットを追加</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-warn btn-sm" onclick="resetLabSets()" style="margin-right:auto">初期セットに戻す</button>
+      <button class="btn btn-sec" onclick="closeModal('labSetEditor')">キャンセル</button>
+      <button class="btn" onclick="saveLabSets()">💾 保存</button>
     </div>
   </div>
 </div>
@@ -1098,6 +1120,26 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
     <div class="modal-foot">
       <button class="btn btn-sec" onclick="closeModal('schedModal')">キャンセル</button>
       <button class="btn" onclick="commitSchedule()">📅 予定を作成</button>
+    </div>
+  </div>
+</div>
+
+<!-- FLUID QUICK-ADD MODAL -->
+<div class="modal-bg" id="fluidModal">
+  <div class="modal">
+    <div class="modal-hdr">＋ 輸液を追加 <button class="modal-x" onclick="closeModal('fluidModal')">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">タップで現在時刻に追加 → 速度はグリッドのセルで直接入力できます。</div>
+      <div class="fluid-presets" id="fluidPresets"></div>
+      <div style="margin-top:8px;padding-top:10px;border-top:1px solid var(--border-soft)">
+        <div class="frow"><span class="flabel">カスタム</span>
+          <input class="fin" id="flCustomName" placeholder="製剤名を入力">
+          <button class="btn btn-sm" onclick="addFluidCustom()">追加</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal('fluidModal')">閉じる</button>
     </div>
   </div>
 </div>
@@ -1423,7 +1465,6 @@ function openPatient(id){
   // Transition first so user sees the screen change even if rendering errors
   document.getElementById('screenList').classList.add('hidden');
   document.getElementById('screenDetail').classList.remove('hidden');
-  document.getElementById('fab').classList.remove('hidden');
   try {
     loadIntoForm();
     switchTab('handover');
@@ -1436,7 +1477,6 @@ function showList(){
   saveCurrent(false);
   document.getElementById('screenDetail').classList.add('hidden');
   document.getElementById('screenList').classList.remove('hidden');
-  document.getElementById('fab').classList.add('hidden');
   renderList();
 }
 function refreshUndoBtn(){
@@ -2273,18 +2313,41 @@ function addMedDrug(){
   p.meds.push({ at, name:name.trim(), dose:dose.trim(), staff:'', done:false });
   saveState(); renderTxGrid();
 }
-function addFluidDrug(){
-  const product = prompt('輸液製剤（例: ラクテック）');
-  if (!product || !product.trim()) return;
-  const rateStr = prompt('開始速度 mL/h（数値）', '');
-  const rate = rateStr==null ? null : (rateStr===''?null:num(rateStr));
-  const at = prompt('開始時刻 (YYYY-MM-DDTHH:MM)', nowLocalISO());
-  if (!at) return;
+/* Fluid presets (LR/AR/NaCl etc) - tap to quick-add */
+const FLUID_PRESETS = [
+  {label:'LR',  sub:'ラクテック'},
+  {label:'AR',  sub:'ヴィーンF'},
+  {label:'NaCl',sub:'生理食塩水'},
+  {label:'5%D', sub:'5%ブドウ糖'},
+  {label:'KN1', sub:'KN1号'},
+  {label:'KN3', sub:'KN3号'},
+  {label:'ソルラクト',sub:''},
+  {label:'ハルトマン',sub:''},
+  {label:'ヴィーン3G',sub:'糖加'},
+];
+function openFluidModal(){
+  const c = document.getElementById('fluidPresets');
+  c.innerHTML = FLUID_PRESETS.map(f=>`<button data-product="${escapeHtml(f.sub||f.label)}" onclick="quickAddFluid(this.dataset.product)">
+    <div>${escapeHtml(f.label)}</div>
+    ${f.sub ? `<span class="fp-sub">${escapeHtml(f.sub)}</span>` : ''}
+  </button>`).join('');
+  document.getElementById('flCustomName').value = '';
+  document.getElementById('fluidModal').classList.add('on');
+}
+function quickAddFluid(product){
+  if (!product) return;
   pushUndo('輸液追加');
   const p = state.patients[currentId]; p.fluids = p.fluids||[];
-  p.fluids.push({ at, product:product.trim(), rate, total:null, note:'' });
-  saveState(); renderTxGrid();
+  p.fluids.push({ at: nowLocalISO(), product, rate:null, total:null, note:'' });
+  saveState(); closeModal('fluidModal'); renderTxGrid();
+  toast(`${product} を追加（速度はセルで入力）`,'ok');
 }
+function addFluidCustom(){
+  const name = document.getElementById('flCustomName').value.trim();
+  if (!name){ toast('製剤名を入力','err'); return }
+  quickAddFluid(name);
+}
+function addFluidDrug(){ openFluidModal() }  // legacy alias
 
 // Legacy compat (kept for any external callers)
 function renderFluidTable(){ renderTxGrid() }
@@ -2376,6 +2439,71 @@ function renderLabs(){
     `合計 ${p.labs.length}件 / 緊急未完了 ${urgent}件 / 異常値あり ${abnormal}件`;
 }
 
+/* Lab presets - editable per hospital */
+const LAB_COMMON_ITEMS = {
+  '血液':['CBC','生化','CRP','SAA','cPL','fPL','TLI','T4','BNP','電解質','血糖','乳酸','血ガス','凝固','D-dimer','アンモニア','胆汁酸'],
+  '尿':['尿比重','pH','蛋白','糖','ケトン','dipstick','沈渣','UPC','尿培養'],
+  '便':['寄生虫','培養','Giardia抗原','クロストリジウム','パルボ抗原'],
+  '画像':['胸部X線','腹部X線','全身X線','腹部エコー','心エコー','CT','MRI','造影','関節X線'],
+  '病理':['細胞診','病理組織','免疫染色','FNA'],
+  'その他':[]
+};
+const DEFAULT_LAB_SETS = [
+  {name:'ER緊急セット', type:'血液', items:['CBC','生化','CRP','血ガス','乳酸']},
+  {name:'腎臓セット', type:'血液', items:['BUN','Cre','SDMA','電解質','P','尿比重','UPC']},
+  {name:'肝臓セット', type:'血液', items:['ALT','AST','ALP','GGT','T-Bil','胆汁酸','アンモニア']},
+  {name:'膵炎セット', type:'血液', items:['cPL','リパーゼ','生化','CRP']},
+  {name:'感染症セット', type:'血液', items:['CBC','CRP','血液培養']},
+  {name:'内分泌セット', type:'血液', items:['T4','コルチゾール','ACTH']},
+  {name:'尿沈渣セット', type:'尿', items:['尿比重','pH','dipstick','沈渣','UPC']},
+  {name:'下痢スクリーニング', type:'便', items:['寄生虫','Giardia抗原','パルボ抗原']},
+  {name:'術前評価', type:'画像', items:['胸部X線','腹部X線','心エコー']},
+];
+
+function ensureLabSets(){
+  if (!state.labSets || !state.labSets.length){
+    state.labSets = DEFAULT_LAB_SETS.map(s=>({...s, items:[...s.items]}));
+    saveState();
+  }
+}
+
+function renderLabSets(){
+  ensureLabSets();
+  const type = document.getElementById('lbType').value;
+  const sets = state.labSets.filter(s=>s.type===type);
+  const c = document.getElementById('lbSets');
+  if (!sets.length){
+    c.innerHTML = `<span style="font-size:11px;color:var(--muted);font-style:italic">この種別のセット未登録</span>`;
+  } else {
+    c.innerHTML = sets.map(s=>`<button data-name="${escapeHtml(s.name)}" onclick="applyLabSet(this.dataset.name)">${escapeHtml(s.name)}</button>`).join('');
+  }
+}
+
+function renderLabItemButtons(){
+  const type = document.getElementById('lbType').value;
+  const items = LAB_COMMON_ITEMS[type] || [];
+  const c = document.getElementById('lbItemBtns');
+  if (!items.length){ c.innerHTML = `<span style="font-size:11px;color:var(--muted);font-style:italic">この種別の個別項目なし。自由入力でどうぞ。</span>`; }
+  else c.innerHTML = items.map(it=>`<button data-item="${escapeHtml(it)}" onclick="appendLabItem(this.dataset.item)">${escapeHtml(it)}</button>`).join('');
+  renderLabSets();
+}
+
+function appendLabItem(item){
+  const input = document.getElementById('lbItems');
+  const cur = input.value.trim();
+  // Check if already exists
+  const existing = cur.split(/[,、]\s*/).map(x=>x.trim()).filter(Boolean);
+  if (existing.includes(item)) return;
+  input.value = cur ? `${cur}, ${item}` : item;
+}
+
+function applyLabSet(name){
+  const set = (state.labSets||[]).find(s=>s.name===name);
+  if (!set) return;
+  set.items.forEach(appendLabItem);
+  toast(`${name} を追加`,'ok');
+}
+
 function openLabEdit(id){
   const p = state.patients[currentId]; p.labs = p.labs||[];
   editingLabId = id;
@@ -2393,8 +2521,104 @@ function openLabEdit(id){
   document.getElementById('lbExt').classList.toggle('on', !!l.external);
   document.querySelectorAll('#lbStatus .seg-i').forEach(s=>s.classList.toggle('on', s.dataset.st===(l.status||'ordered')));
   document.getElementById('lbDelBtn').style.display = id ? 'inline-flex' : 'none';
+  document.getElementById('lbSaveNext').style.display = id ? 'none' : 'inline-flex';
   renderLbPhotos();
+  renderLabItemButtons();
   document.getElementById('labModal').classList.add('on');
+}
+
+/* Save current lab and reset modal for next entry (keeps doc + date) */
+function saveLabAndAddNext(){
+  const keepDoc = document.getElementById('lbDoc').value;
+  const keepAt = document.getElementById('lbAt').value;
+  const keepUrgent = document.getElementById('lbUrgent').classList.contains('on');
+  const keepType = document.getElementById('lbType').value;
+  // Save current
+  saveLabInternal();
+  // Reset modal for next
+  editingLabId = null;
+  currentLabPhotos = [];
+  document.getElementById('labModalTitle').textContent = '＋ 検査依頼（追加）';
+  document.getElementById('lbAt').value = keepAt;
+  document.getElementById('lbType').value = keepType;
+  document.getElementById('lbItems').value = '';
+  document.getElementById('lbDoc').value = keepDoc;
+  document.getElementById('lbResult').value = '';
+  document.getElementById('lbNote').value = '';
+  document.getElementById('lbUrgent').classList.toggle('on', keepUrgent);
+  document.getElementById('lbExt').classList.remove('on');
+  document.querySelectorAll('#lbStatus .seg-i').forEach(s=>s.classList.toggle('on', s.dataset.st==='ordered'));
+  document.getElementById('lbDelBtn').style.display = 'none';
+  renderLbPhotos();
+  renderLabItemButtons();
+}
+function saveLabInternal(){
+  const p = state.patients[currentId]; p.labs = p.labs||[];
+  const st = document.querySelector('#lbStatus .seg-i.on')?.dataset.st || 'ordered';
+  const data = {
+    at: document.getElementById('lbAt').value,
+    type: document.getElementById('lbType').value,
+    items: document.getElementById('lbItems').value.trim(),
+    doctor: document.getElementById('lbDoc').value.trim(),
+    result: document.getElementById('lbResult').value,
+    note: document.getElementById('lbNote').value.trim(),
+    urgent: document.getElementById('lbUrgent').classList.contains('on'),
+    external: document.getElementById('lbExt').classList.contains('on'),
+    status: st,
+    photos: [...currentLabPhotos],
+  };
+  pushUndo(editingLabId?'検査編集':'検査依頼追加');
+  if (editingLabId){ const l = p.labs.find(x=>x.id===editingLabId); Object.assign(l, data) }
+  else { p.labs.push({ id: uid('l'), ...data }) }
+  saveState(); renderLabs(); toast('保存しました','ok');
+}
+
+/* Lab set editor */
+let editingLabSets = [];
+function openLabSetEditor(){
+  ensureLabSets();
+  editingLabSets = state.labSets.map(s=>({...s, items:[...s.items]}));
+  renderLabSetEditor();
+  document.getElementById('labSetEditor').classList.add('on');
+}
+function renderLabSetEditor(){
+  const c = document.getElementById('lseList');
+  if (!editingLabSets.length){ c.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:12px;padding:12px">セット未登録</div>`; return }
+  c.innerHTML = editingLabSets.map((s,i)=>`<div style="background:var(--bg-soft);border-radius:7px;padding:9px;margin-bottom:7px;border:1px solid var(--border-soft)">
+    <div style="display:flex;gap:5px;align-items:center;margin-bottom:5px">
+      <input value="${escapeHtml(s.name)}" placeholder="セット名" oninput="editingLabSets[${i}].name=this.value" style="flex:1;font-size:13px;font-weight:700;border:1.5px solid var(--border);padding:6px 8px;border-radius:5px;font-family:inherit">
+      <select onchange="editingLabSets[${i}].type=this.value" style="font-size:12px;padding:6px;border:1.5px solid var(--border);border-radius:5px;font-family:inherit">
+        <option value="血液" ${s.type==='血液'?'selected':''}>血液</option>
+        <option value="尿" ${s.type==='尿'?'selected':''}>尿</option>
+        <option value="便" ${s.type==='便'?'selected':''}>便</option>
+        <option value="画像" ${s.type==='画像'?'selected':''}>画像</option>
+        <option value="病理" ${s.type==='病理'?'selected':''}>病理</option>
+        <option value="その他" ${s.type==='その他'?'selected':''}>その他</option>
+      </select>
+      <button onclick="removeLabSetRow(${i})" style="background:none;border:none;color:var(--red);font-size:15px;cursor:pointer;padding:4px">🗑</button>
+    </div>
+    <textarea oninput="editingLabSets[${i}].items=this.value.split(/[,、\\n]+/).map(x=>x.trim()).filter(Boolean)" style="width:100%;font-size:12px;padding:6px 8px;border:1.5px solid var(--border);border-radius:5px;min-height:40px;font-family:inherit" placeholder="項目をカンマ区切りで">${s.items.join(', ')}</textarea>
+  </div>`).join('');
+}
+function addLabSetRow(){
+  editingLabSets.push({name:'新セット', type:'血液', items:[]});
+  renderLabSetEditor();
+}
+function removeLabSetRow(i){
+  if (!confirm('このセットを削除しますか？')) return;
+  editingLabSets.splice(i,1);
+  renderLabSetEditor();
+}
+function saveLabSets(){
+  state.labSets = editingLabSets.filter(s=>s.name && s.name.trim());
+  saveState(); closeModal('labSetEditor');
+  if (document.getElementById('labModal').classList.contains('on')) renderLabSets();
+  toast('セットを保存','ok');
+}
+function resetLabSets(){
+  if (!confirm('セットを初期状態に戻しますか？編集内容は失われます。')) return;
+  editingLabSets = DEFAULT_LAB_SETS.map(s=>({...s, items:[...s.items]}));
+  renderLabSetEditor();
 }
 document.getElementById('lbStatus').addEventListener('click',(e)=>{
   const s = e.target.closest('.seg-i'); if (!s) return;
