@@ -2677,14 +2677,13 @@ function renderLabs(){
 const LAB_COMMON_ITEMS = {
   '血液': {
     'CBC・血算': ['CBC','白血球分画','Hct','血小板','網状赤血球'],
-    '生化（基本）': ['ALT','AST','BUN','Cre','電解質','GLU'],
-    '生化（詳細）': ['ALP','GGT','T-Bil','SDMA','P','Ca','T-Pro','Alb','T-Cho','TG'],
+    '生化': ['ALT','AST','ALP','GGT','T-Bil','BUN','Cre','SDMA','P','Ca','Na','K','Cl','TP','Alb','GLU','T-Cho','TG'],
     '炎症': ['CRP','SAA'],
     '膵・肝': ['cPL','fPL','TLI','アミラーゼ','リパーゼ','アンモニア','胆汁酸'],
     '内分泌': ['T4','fT4','TSH','コルチゾール','ACTH','インスリン'],
     '心': ['BNP','トロポニン'],
     'ガス・凝固': ['血ガス','乳酸','PT/APTT','D-dimer','フィブリノゲン'],
-    '感染症': ['血液培養','FIV検査','FeLV検査','SDMA','Lepto抗体']
+    '感染症': ['血液培養','FIV検査','FeLV検査','Lepto抗体']
   },
   '尿': {
     '基本': ['尿比重','尿pH','dipstick','沈渣'],
@@ -2777,7 +2776,8 @@ function appendLabItem(item){
 function applyLabSet(name){
   const set = (state.labSets||[]).find(s=>s.name===name);
   if (!set) return;
-  set.items.forEach(appendLabItem);
+  // セット名のみを項目欄に追加（病院の貼り紙で内容は分かるため）
+  appendLabItem(name);
   toast(`${name} を追加`,'ok');
 }
 
