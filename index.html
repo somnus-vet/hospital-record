@@ -711,6 +711,40 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 
 .ho-empty{text-align:center;color:var(--muted);padding:18px 8px;font-size:12px}
 
+/* ============================================================
+   PDF / PRINT VIEW
+   ============================================================ */
+#printView{display:none}
+body.printing > *:not(#printView){display:none !important}
+body.printing #printView{display:block !important;position:relative;background:#fff;color:#000;font-family:-apple-system,'Helvetica Neue','Hiragino Sans',sans-serif;padding:14px 16px}
+
+.pv-header{border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:12px}
+.pv-title{font-size:18px;font-weight:800;color:#000}
+.pv-sub{font-size:11px;color:#444;margin-top:3px}
+.pv-meta-row{display:flex;justify-content:space-between;margin-top:4px;flex-wrap:wrap;gap:8px}
+.pv-section{margin-bottom:12px;page-break-inside:auto}
+.pv-section-title{font-size:13px;font-weight:800;border-bottom:1px solid #555;padding-bottom:2px;margin-bottom:6px;color:#000}
+.pv-block{padding-left:8px;border-left:2px solid #888;margin-bottom:6px}
+.pv-block-time{font-weight:700;font-size:11px;color:#000}
+.pv-block-body{font-size:11px;color:#333;white-space:pre-wrap;margin-top:2px}
+.pv-result{background:#f3f3f3;padding:4px 6px;border-radius:3px;font-family:monospace;font-size:10px;white-space:pre-wrap;margin-top:2px}
+.pv-table{width:100%;border-collapse:collapse;font-size:10px;color:#000}
+.pv-table th,.pv-table td{border:1px solid #888;padding:3px 5px;text-align:center;vertical-align:top}
+.pv-table th{background:#e8e8e8;font-weight:800;font-size:9.5px}
+.pv-table tr.warn td{background:#ffe0e0;font-weight:700}
+.pv-foot{font-size:9px;color:#666;text-align:right;margin-top:14px;padding-top:6px;border-top:1px solid #ccc}
+.pv-disease{display:inline-block;background:#000;color:#fff;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;margin-right:5px}
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body { background: white !important; color: black !important; }
+  body.printing #printView { padding: 0 !important; }
+  .pv-section { page-break-inside: avoid; }
+  .pv-table { page-break-inside: auto; }
+  .pv-table tr { page-break-inside: avoid; page-break-after: auto; }
+  .pv-table thead { display: table-header-group; }
+}
+
 /* iPad/PC adjustments */
 @media (min-width:768px){
   .tab{font-size:11px;padding:8px 6px}
@@ -1017,10 +1051,13 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
         </div>
       </div>
       <div class="card sys-tx">
-        <div class="c-hdr alt">退院サマリ <span class="c-hdr-en">DISCHARGE SUMMARY</span></div>
+        <div class="c-hdr alt">退院サマリ・PDF出力 <span class="c-hdr-en">PDF / SUMMARY</span></div>
         <div class="c-body">
-          <div style="font-size:12px;color:var(--text2);margin-bottom:8px">入院期間中の経過要約を自動生成します（飼い主に見せる用：感染症マーク/性格/面会気分は<b>含まれません</b>）。</div>
-          <button class="btn" onclick="genDischarge()">📄 サマリを生成</button>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:8px">📋 <b>退院サマリ</b>：経過要約をテキスト生成（感染症マーク/性格/面会気分は含まれません）</div>
+          <button class="btn btn-sec" onclick="genDischarge()" style="margin-bottom:8px;width:100%">📄 退院サマリを生成（テキスト）</button>
+          <div style="font-size:12px;color:var(--text2);margin:10px 0 6px">📑 <b>全データPDF</b>：バイタル/IO/治療/検査/メモ/面会を一括出力（飼い主の様子・性格は含まれません）</div>
+          <button class="btn" onclick="generatePDF()" style="width:100%">📑 PDFで出力</button>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">※ ブラウザの印刷ダイアログが開きます。<b>「PDFとして保存」</b>を選択してください。<br>iPad/iPhoneは共有ボタンから「ファイルに保存」も可能です。</div>
         </div>
       </div>
       <div class="card sys-obs">
@@ -1045,6 +1082,9 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 
   </div>
 </div>
+
+<!-- PRINT VIEW (populated by JS for PDF output) -->
+<div id="printView"></div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -4408,6 +4448,190 @@ function genDischarge(){
 function copyDischarge(){
   const t = document.getElementById('dsText'); t.select(); document.execCommand('copy');
   toast('コピーしました','ok');
+}
+
+/* ============================================================
+   PDF OUTPUT (browser print → Save as PDF)
+   ============================================================ */
+function generatePDF(){
+  if (!currentId) return;
+  const p = state.patients[currentId];
+  document.getElementById('printView').innerHTML = buildPrintHTML(p);
+  document.body.classList.add('printing');
+  // Slight delay to allow render before print dialog
+  setTimeout(()=>{
+    try { window.print(); }
+    catch(e) { console.error('Print failed:', e); toast('印刷ダイアログ起動失敗','err') }
+    // Remove printing class regardless of print result
+    setTimeout(()=>document.body.classList.remove('printing'), 1500);
+  }, 200);
+}
+
+function buildPrintHTML(p){
+  const esc = escapeHtml;
+  const age = p.birthday ? computeAge(p.birthday) : (p.age||'');
+  const admitDate = p.admittedAt || '';
+  const days = admitDate ? Math.floor((Date.now()-new Date(admitDate).getTime())/86400000)+1 : '?';
+
+  let h = '';
+
+  // Header
+  h += `<div class="pv-header">
+    <div class="pv-title">${esc(p.name||'(無名)')}${p.condition?` 〈${esc(p.condition)}〉`:''}</div>
+    <div class="pv-sub">${esc(p.species||'')}${p.breed?` / ${esc(p.breed)}`:''} / ${esc(p.sex||'')} / ${esc(age)} / ${p.bodyWeight||'—'}kg</div>
+    <div class="pv-meta-row">
+      <span>患者ID: ${esc(p.patientId||'—')}</span>
+      <span>入院日: ${esc(admitDate)} (入院${days}日目)</span>
+      <span>主治医: ${esc(p.doctor||'—')}</span>
+    </div>
+  </div>`;
+
+  // Diseases
+  if ((p.diseases||[]).length){
+    h += `<div class="pv-section">
+      <div class="pv-section-title">☣ 感染性疾患</div>
+      <div>${p.diseases.map(d=>`<span class="pv-disease">${esc(d)}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  // Diagnosis & goal
+  if (p.diagnosis || p.dischargeGoal){
+    h += `<div class="pv-section">
+      <div class="pv-section-title">診断 / 退院目標</div>
+      ${p.diagnosis?`<div class="pv-block"><div class="pv-block-time">診断・主訴</div><div class="pv-block-body">${esc(p.diagnosis)}</div></div>`:''}
+      ${p.dischargeGoal?`<div class="pv-block"><div class="pv-block-time">退院目標</div><div class="pv-block-body">${esc(p.dischargeGoal)}</div></div>`:''}
+    </div>`;
+  }
+
+  // Vitals
+  if ((p.vitals||[]).length){
+    const sorted = [...p.vitals].sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+    h += `<div class="pv-section">
+      <div class="pv-section-title">バイタル経過 (${sorted.length}件)</div>
+      <table class="pv-table">
+        <thead><tr><th>日時</th><th>体温 ℃</th><th>心拍 /分</th><th>呼吸 /分</th><th>SpO₂ %</th><th>担当</th></tr></thead>
+        <tbody>${sorted.map(v=>{
+          const out = outOfRangeFlags(p, v);
+          const cls = Object.values(out).some(x=>x) ? 'warn' : '';
+          return `<tr class="${cls}">
+            <td>${fmtDT(v.at)}</td>
+            <td>${v.temp??''}</td>
+            <td>${v.hr??''}</td>
+            <td>${v.rr??''}</td>
+            <td>${v.spo2??''}</td>
+            <td>${esc(v.staff||'')}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // In/Out
+  if ((p.inout||[]).length){
+    const sorted = [...p.inout].sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+    h += `<div class="pv-section">
+      <div class="pv-section-title">In/Out (${sorted.length}件)</div>
+      <table class="pv-table">
+        <thead><tr><th>日時</th><th>食事%</th><th>食事内容</th><th>飲水mL</th><th>尿</th><th>尿mL</th><th>便</th><th>便スコア</th><th>備考</th></tr></thead>
+        <tbody>${sorted.map(r=>{
+          const food = r.foodName||r.foodType||'';
+          const foodGram = r.foodGram!=null ? `${r.foodGram}g` : '';
+          return `<tr>
+            <td>${fmtDT(r.at)}</td>
+            <td>${r.foodPct??''}</td>
+            <td>${esc(food)} ${esc(foodGram)}</td>
+            <td>${r.water??''}</td>
+            <td>${esc(r.urinePresent||'')}</td>
+            <td>${r.urine??''}</td>
+            <td>${esc(r.stoolPresent||'')}</td>
+            <td>${r.stoolScore??''}</td>
+            <td>${esc(r.note||'')}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // Fluids
+  if ((p.fluids||[]).filter(f=>f.product).length){
+    const sorted = [...p.fluids].filter(f=>f.product).sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+    h += `<div class="pv-section">
+      <div class="pv-section-title">輸液 (${sorted.length}件)</div>
+      <table class="pv-table">
+        <thead><tr><th>開始日時</th><th>製剤</th><th>速度 mL/h</th><th>備考</th></tr></thead>
+        <tbody>${sorted.map(f=>`<tr>
+          <td>${fmtDT(f.at)}</td>
+          <td>${esc(f.product||'')}</td>
+          <td>${f.rate??''}</td>
+          <td>${esc(f.note||'')}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // Meds
+  if ((p.meds||[]).length){
+    const sorted = [...p.meds].sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+    h += `<div class="pv-section">
+      <div class="pv-section-title">投薬 (${sorted.length}件)</div>
+      <table class="pv-table">
+        <thead><tr><th>日時</th><th>薬剤</th><th>用量・経路</th><th>担当</th><th>実施</th></tr></thead>
+        <tbody>${sorted.map(m=>`<tr>
+          <td>${fmtDT(m.at)}</td>
+          <td>${esc(m.name||'')}</td>
+          <td>${esc(m.dose||'')}</td>
+          <td>${esc(m.staff||'')}</td>
+          <td>${m.done?'✓':'未'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // Labs
+  if ((p.labs||[]).length){
+    const sorted = [...p.labs].sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+    const statusLabel = {ordered:'依頼',collected:'採取',awaiting:'結果待ち',reported:'結果あり'};
+    h += `<div class="pv-section">
+      <div class="pv-section-title">検査 (${sorted.length}件)</div>
+      ${sorted.map(l=>`<div class="pv-block">
+        <div class="pv-block-time">${fmtDT(l.at)} ${esc(l.type||'')} [${statusLabel[l.status]||l.status||''}]${l.urgent?' 🚨緊急':''}${l.external?' [外注]':''}</div>
+        <div class="pv-block-body">項目: ${esc(l.items||'(未設定)')}</div>
+        ${l.doctor?`<div class="pv-block-body">指示医: ${esc(l.doctor)}</div>`:''}
+        ${l.result?`<div class="pv-result">${esc(l.result)}</div>`:''}
+        ${l.note?`<div class="pv-block-body">備考: ${esc(l.note)}</div>`:''}
+        ${l.photos&&l.photos.length?`<div class="pv-block-body">📷 結果写真: ${l.photos.length}枚（別途確認）</div>`:''}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Notes
+  if ((p.notes||[]).length){
+    const sorted = [...p.notes].sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+    h += `<div class="pv-section">
+      <div class="pv-section-title">観察メモ (${sorted.length}件)</div>
+      ${sorted.map(n=>`<div class="pv-block">
+        <div class="pv-block-time">${fmtDT(n.at)}${n.staff?` (${esc(n.staff)})`:''}${n.activity?` [活動性: ${esc(n.activity)}]`:''}${n.pain?` [疼痛: ${esc(n.pain)}]`:''}</div>
+        ${n.text?`<div class="pv-block-body">${esc(n.text)}</div>`:''}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Visits (mood/gift excluded for owner privacy)
+  if ((p.visits||[]).length){
+    const sorted = [...p.visits].sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+    h += `<div class="pv-section">
+      <div class="pv-section-title">面会記録 (${sorted.length}件)</div>
+      ${sorted.map(v=>`<div class="pv-block">
+        <div class="pv-block-time">${fmtDT(v.at)} 面会者: ${esc(v.who||'—')}${v.staff?` (対応: ${esc(v.staff)})`:''}</div>
+        ${v.text?`<div class="pv-block-body">${esc(v.text)}</div>`:''}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Footer
+  h += `<div class="pv-foot">出力日時: ${fmtDT(nowLocalISO())} / 入院管理アプリ</div>`;
+
+  return h;
 }
 
 /* ============================================================
