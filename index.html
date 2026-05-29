@@ -1,0 +1,3572 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>入院管理</title>
+<style>
+/* ============================================================
+   COLOR SYSTEM (Pass 2: clinical & calm)
+   - off-white background reduces eye strain on long shifts
+   - alerts use warm reds; stool uses brown→amber (no hue clash)
+   - normal/safe is teal-green; UI accents are calm navy/blue
+   ============================================================ */
+:root {
+  --bg:#f3f6fa; --bg-soft:#fafbfd; --bg-card:#fff;
+  --navy:#1e3a5f; --navy2:#2a4f7a; --navy3:#3a5d8a;
+  --blue:#2e86c1; --blue-soft:#e8f1fb;
+  --teal:#16a085; --green:#27ae60;
+  --amber:#d68910; --amber-soft:#fef3e0;
+  --red:#c0392b; --red-soft:#fbe9e7;
+  --purple:#7b4f9e;
+  --text:#1a2332; --text2:#3b4a63; --muted:#7a8aa5;
+  --border:#dde3ec; --border-soft:#eef2f7;
+
+  /* System group accents (Pass 3: pre-attentive grouping) */
+  --sys-circ:#c0392b;     /* 循環 - red family */
+  --sys-resp:#2e86c1;     /* 呼吸 - blue */
+  --sys-temp:#d68910;     /* 体温 - amber */
+  --sys-gi:#a06845;       /* 消化器 - brown */
+  --sys-renal:#16a085;    /* 腎泌尿 - teal */
+  --sys-tx:#7b4f9e;       /* 治療 - purple */
+  --sys-obs:#3b4a63;      /* 観察 - slate */
+
+  /* Stool 1..7: water-content gradient, brown→pale yellow.
+     Distinct hue from alert red so abnormal cells & alerts don't collide. */
+  --st-1:#5e3a22; --st-2:#7a4e2f; --st-3:#9a663d; --st-4:#b6803c;
+  --st-5:#d4a04c; --st-6:#e8c25e; --st-7:#f4dc7a;
+
+  --r:10px; --r-sm:7px; --r-lg:14px;
+  --shadow:0 1px 3px rgba(20,40,70,.06);
+  --shadow-md:0 4px 14px rgba(20,40,70,.10);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{height:100%;overflow:hidden;margin:0}
+body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;-webkit-text-size-adjust:100%;line-height:1.5}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg);transition:transform .3s ease}
+.screen.hidden{transform:translateX(100%);pointer-events:none}
+
+/* ============================================================
+   PATIENT LIST (Pass 1: at-a-glance summary on each card)
+   ============================================================ */
+.app-hdr{background:linear-gradient(135deg,var(--navy) 0%, var(--navy2) 100%);color:#fff;padding:max(16px,env(safe-area-inset-top)) 18px 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-shrink:0;box-shadow:0 2px 8px rgba(20,40,70,.15)}
+.app-title{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.app-sub{font-size:11px;opacity:.7;margin-top:2px;letter-spacing:.5px}
+.hdr-actions{display:flex;gap:6px;align-items:center}
+.btn-new{background:#fff;color:var(--navy);border:none;border-radius:22px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.btn-icon{background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.btn-icon:active{background:rgba(255,255,255,.30)}
+
+.cases-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px}
+.case-card{background:var(--bg-card);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;display:grid;grid-template-columns:46px 1fr auto;gap:13px;-webkit-user-select:none;align-items:center;border-left:4px solid transparent}
+.case-card:active{background:#f6f9fc}
+.case-card.alert{border-left-color:var(--red)}
+.case-card.warn{border-left-color:var(--amber)}
+.case-icon{width:46px;height:46px;background:var(--navy);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;font-weight:700}
+.case-info{min-width:0}
+.case-name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.case-name .pid{font-weight:400;color:var(--muted);font-size:12px}
+.case-meta{font-size:12px;color:var(--text2);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.case-vitals{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.vpill{font-size:11px;padding:3px 8px;background:var(--bg);border-radius:10px;font-weight:600;color:var(--text2);border:1px solid var(--border-soft);font-feature-settings:'tnum'}
+.vpill.abn{background:var(--red-soft);color:var(--red);border-color:#f5cdc7}
+.vpill .lbl{color:var(--muted);font-weight:500;margin-right:3px}
+.day-pill{background:#e8f5ef;color:#1e7a4d;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.alert-badge{background:var(--red-soft);color:var(--red);padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:3px}
+.case-del{background:none;border:none;color:#c5cad3;font-size:18px;padding:6px 8px;cursor:pointer;align-self:start}
+.case-del:hover{color:var(--red)}
+.empty{text-align:center;padding:80px 20px;color:var(--muted)}
+.empty-icon{font-size:64px;margin-bottom:16px}
+.empty-text{font-size:17px;font-weight:600;margin-bottom:8px;color:var(--text2)}
+.empty-sub{font-size:13px;opacity:.85}
+
+/* ============================================================
+   DETAIL HEADER (Pass 3: persistent vital summary + status)
+   ============================================================ */
+.form-hdr{background:linear-gradient(135deg,var(--navy) 0%, var(--navy2) 100%);padding:max(8px,env(safe-area-inset-top)) 12px 8px;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.fh-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.btn-back{background:none;border:none;color:#fff;font-size:15px;padding:4px 6px 4px 0;cursor:pointer;display:flex;align-items:center;gap:2px;white-space:nowrap;font-weight:600}
+.hdr-title{flex:1;font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+.hdr-title .sub{font-size:11px;opacity:.7;font-weight:400;margin-left:5px}
+.weight-pill{background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.3);border-radius:14px;padding:3px 10px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;font-feature-settings:'tnum'}
+.condition-chip{background:#fff;color:var(--navy);padding:2px 9px;border-radius:9px;font-size:12px;font-weight:800;margin:0 6px;display:inline-block;letter-spacing:.3px;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.btn-quick{background:#fff;color:var(--navy);border:none;border-radius:14px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px}
+
+/* Vital pills row (always visible) */
+.fh-vitals{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.fh-vitals::-webkit-scrollbar{display:none}
+.fh-vp{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);border-radius:10px;padding:4px 9px;font-size:11px;color:#fff;white-space:nowrap;display:flex;gap:5px;align-items:center;flex-shrink:0;font-feature-settings:'tnum'}
+.fh-vp .l{opacity:.65;font-weight:500}
+.fh-vp .v{font-weight:700;font-size:13px}
+.fh-vp.abn{background:rgba(192,57,43,.55);border-color:rgba(255,180,170,.6)}
+.fh-vp.abn .l{opacity:.85}
+
+/* Status badges row */
+.fh-status{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+.status-badge{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:2px 8px;font-size:10.5px;color:#fff;cursor:pointer;font-weight:600;letter-spacing:.3px}
+.status-badge.on{background:#fff;color:var(--navy);border-color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.status-badge.on.warn{background:var(--amber);color:#fff}
+.status-badge.on.danger{background:var(--red);color:#fff}
+
+/* TAB BAR */
+.tab-bar{background:var(--navy2);display:flex;overflow-x:auto;flex-shrink:0;scrollbar-width:none;box-shadow:inset 0 -2px 0 rgba(0,0,0,.1)}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:62px;padding:7px 4px;text-align:center;cursor:pointer;color:rgba(255,255,255,.6);font-size:10px;border-bottom:5px solid transparent;transition:all .15s;-webkit-user-select:none;font-weight:600;letter-spacing:.3px;position:relative}
+.tab .ti{font-size:18px;display:block;margin-bottom:1px;line-height:1}
+.tab.on{color:#fff;border-bottom-color:#7fc6f4;background:rgba(0,0,0,.12)}
+.tab.alert{color:#ffb8af}
+.tab.alert::after{content:'●';color:var(--red);font-size:8px;display:inline-block;margin-left:3px;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* MAIN + PANELS */
+.form-main{flex:1;overflow:hidden;position:relative}
+.panel{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:96px}
+.panel.on{display:block}
+
+/* ACTION BAR */
+.act-bar{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);padding:7px 10px;padding-bottom:max(7px,env(safe-area-inset-bottom));display:flex;gap:7px;z-index:5;box-shadow:0 -2px 8px rgba(0,0,0,.04)}
+.act-btn{flex:1;padding:10px 6px;border-radius:var(--r-sm);border:none;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;min-height:42px}
+.act-primary{background:var(--navy);color:#fff}
+.act-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+
+/* ============================================================
+   CARDS (Pass 3: system-color left bar for pre-attentive grouping)
+   ============================================================ */
+.card{background:var(--bg-card);border-radius:var(--r);margin:10px 11px;overflow:hidden;box-shadow:var(--shadow);border-left:4px solid transparent}
+.card.sys-circ{border-left-color:var(--sys-circ)}
+.card.sys-resp{border-left-color:var(--sys-resp)}
+.card.sys-temp{border-left-color:var(--sys-temp)}
+.card.sys-gi{border-left-color:var(--sys-gi)}
+.card.sys-renal{border-left-color:var(--sys-renal)}
+.card.sys-tx{border-left-color:var(--sys-tx)}
+.card.sys-obs{border-left-color:var(--sys-obs)}
+.c-hdr{background:var(--navy);color:#fff;padding:8px 13px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.c-hdr.alt{background:var(--navy2)}
+.c-hdr.muted{background:var(--bg);color:var(--text2);border-bottom:1px solid var(--border-soft)}
+.c-hdr-en{font-size:10.5px;opacity:.65;font-weight:400;letter-spacing:.5px}
+.c-body{padding:13px}
+
+/* FIELDS */
+.frow{display:flex;align-items:center;gap:7px;margin-bottom:10px;flex-wrap:wrap}
+.frow:last-child{margin-bottom:0}
+.flabel{font-size:12.5px;color:var(--muted);flex-shrink:0;min-width:62px;font-weight:600}
+.flabel-w{min-width:84px}
+.fin{flex:1;min-width:60px;font-size:15px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg-soft);color:var(--text);-webkit-appearance:none;appearance:none;min-height:40px;font-feature-settings:'tnum'}
+.fin:focus{outline:none;border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(46,134,193,.12)}
+.fin-sm{max-width:78px}
+.fin-md{max-width:118px}
+.ftxt{width:100%;font-size:14px;padding:9px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg-soft);color:var(--text);min-height:66px;resize:vertical;font-family:inherit;line-height:1.55}
+.ftxt:focus{outline:none;border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(46,134,193,.12)}
+.unit{font-size:12px;color:var(--muted);flex-shrink:0;white-space:nowrap}
+
+/* SEGMENT */
+.seg{display:flex;border:1.5px solid var(--border);border-radius:var(--r-sm);overflow:hidden;background:var(--bg-soft)}
+.seg-i{flex:1;padding:8px 5px;text-align:center;cursor:pointer;font-size:12.5px;color:var(--muted);background:transparent;border-right:1px solid var(--border);-webkit-user-select:none;min-height:40px;display:flex;align-items:center;justify-content:center;font-weight:600}
+.seg-i:last-child{border-right:none}
+.seg-i.on{background:var(--navy);color:#fff}
+.seg-i.on.danger{background:var(--red)}
+.seg-i.on.warn{background:var(--amber)}
+
+/* BUTTONS */
+.btn{background:var(--navy);color:#fff;border:none;border-radius:var(--r-sm);padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;min-height:38px;display:inline-flex;align-items:center;gap:5px;justify-content:center}
+.btn:active{opacity:.85}
+.btn-sec{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-warn{background:var(--amber);color:#fff}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:5px 10px;font-size:11.5px;min-height:30px}
+.btn-now{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:8px 10px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;min-height:38px;flex-shrink:0}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -11px;padding:0 11px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:560px;font-feature-settings:'tnum'}
+.tbl th,.tbl td{padding:6px 6px;border:1px solid var(--border-soft);text-align:center;white-space:nowrap}
+.tbl th{background:var(--bg);color:var(--text2);font-weight:700;font-size:11.5px;position:sticky;top:0;z-index:1;letter-spacing:.3px}
+.tbl td.left{text-align:left}
+.tbl td input,.tbl td select{width:100%;border:none;background:transparent;font-size:13px;text-align:center;padding:3px;min-height:30px;font-family:inherit;font-feature-settings:'tnum'}
+.tbl td input:focus{outline:2px solid var(--blue);background:#fff;border-radius:3px}
+.tbl tr.warn td{background:var(--red-soft)}
+.tbl tr.warn td input{color:var(--red);font-weight:700}
+.tbl .btn-row{background:none;border:none;color:#c5cad3;font-size:15px;cursor:pointer;padding:3px 6px}
+.tbl .btn-row:hover{color:var(--red)}
+.tbl .arrow{font-size:10px;margin-left:2px;font-weight:700}
+.tbl .arrow.hi{color:var(--red)}
+.tbl .arrow.lo{color:var(--blue)}
+
+/* ============================================================
+   FLOW SHEET (Pass 1: time-horizontal ICU-style flow sheet)
+   ============================================================ */
+.flow-wrap{background:var(--bg-card);margin:10px 11px;border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.flow-ctrl{display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border-soft);align-items:center;background:var(--bg-soft);flex-wrap:wrap}
+.flow-ctrl .lbl{font-size:11px;color:var(--muted);font-weight:600;margin-right:3px}
+.flow-ctrl .seg{height:30px}
+.flow-ctrl .seg-i{padding:4px 9px;font-size:11.5px;min-height:30px}
+.flow-scroll{position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;background:var(--bg-soft)}
+.flow-grid{position:relative;min-width:100%}
+.flow-time{position:sticky;top:0;background:linear-gradient(180deg,var(--navy2),var(--navy3));color:#fff;height:34px;z-index:3;display:flex;align-items:stretch;border-bottom:2px solid var(--navy)}
+.flow-time-left{position:sticky;left:0;width:92px;flex-shrink:0;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;letter-spacing:.4px;border-right:2px solid rgba(255,255,255,.15);z-index:4}
+.flow-time-axis{flex:1;position:relative;font-size:10px}
+.tk{position:absolute;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;align-items:center;border-left:1px solid rgba(255,255,255,.15)}
+.tk.day{background:rgba(255,255,255,.07);border-left-color:rgba(255,255,255,.45)}
+.tk.day .d{font-weight:800;font-size:11px}
+.tk.day .w{font-size:9px;opacity:.75;letter-spacing:.5px}
+.tk.hr{font-size:9px;opacity:.55}
+.flow-lanes{display:flex;flex-direction:column}
+.flow-lane{display:flex;border-bottom:1px solid var(--border-soft);min-height:40px;position:relative;background:#fff}
+.flow-lane:nth-child(even){background:var(--bg-soft)}
+.lane-label{position:sticky;left:0;width:92px;flex-shrink:0;background:inherit;padding:6px 8px;font-size:11.5px;font-weight:700;color:var(--text2);display:flex;flex-direction:column;justify-content:center;border-right:2px solid var(--border-soft);z-index:2;line-height:1.2}
+.lane-label .lu{font-size:9px;color:var(--muted);font-weight:500;margin-top:2px}
+.lane-label.sys-circ{box-shadow:inset 3px 0 0 var(--sys-circ)}
+.lane-label.sys-resp{box-shadow:inset 3px 0 0 var(--sys-resp)}
+.lane-label.sys-temp{box-shadow:inset 3px 0 0 var(--sys-temp)}
+.lane-label.sys-gi{box-shadow:inset 3px 0 0 var(--sys-gi)}
+.lane-label.sys-renal{box-shadow:inset 3px 0 0 var(--sys-renal)}
+.lane-label.sys-tx{box-shadow:inset 3px 0 0 var(--sys-tx)}
+.lane-label.sys-obs{box-shadow:inset 3px 0 0 var(--sys-obs)}
+.lane-content{flex:1;position:relative;min-height:40px}
+.lane-content svg{display:block;width:100%;height:100%;position:absolute;inset:0}
+.lane-marker{position:absolute;transform:translateX(-50%);cursor:pointer}
+.lane-section{background:linear-gradient(90deg,var(--bg) 0%, transparent 100%);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:3px 11px;font-size:10.5px;font-weight:700;color:var(--text2);letter-spacing:.6px;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.lane-section .dot{width:8px;height:8px;border-radius:50%}
+.flow-now{position:absolute;top:0;bottom:0;width:2px;background:var(--red);opacity:.6;pointer-events:none;z-index:1}
+.flow-now::before{content:'NOW';position:absolute;top:-2px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;font-size:8px;padding:1px 4px;border-radius:0 0 3px 3px;font-weight:700;letter-spacing:.5px}
+.flow-day-bg{position:absolute;top:0;bottom:0;background:rgba(0,0,0,.018);pointer-events:none;z-index:0}
+
+/* In/Out colored bars (in lanes) */
+.bar-water{background:linear-gradient(180deg,#7fc6f4,#3498db);border-radius:2px}
+.bar-urine{background:linear-gradient(180deg,#f9d978,#d4a04c);border-radius:2px}
+.bar-food{background:linear-gradient(180deg,#a8e0a3,#27ae60);border-radius:2px}
+.bar-fluid{background:linear-gradient(180deg,#bda1d4,#7b4f9e);border-radius:2px}
+.dot-stool{border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.mk-med{width:16px;height:16px;border-radius:4px;background:var(--sys-tx);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.mk-med.done{background:var(--green)}
+.mk-med.overdue{background:var(--red);animation:pulse 1.4s ease-in-out infinite}
+.mk-note{width:14px;height:14px;border-radius:50%;background:var(--sys-obs);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff}
+.mk-lab{width:16px;height:16px;border-radius:3px;background:#fff;border:2px solid var(--navy);color:var(--navy);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* STOOL SCORE PALETTE */
+.stool-pal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:6px 0}
+.stool-i{padding:8px 4px;border-radius:6px;text-align:center;font-size:12px;font-weight:700;color:#fff;cursor:pointer;border:2px solid transparent;-webkit-user-select:none;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.stool-i.sel{border-color:var(--navy);box-shadow:0 0 0 2px #fff inset}
+.st-1{background:var(--st-1)}.st-2{background:var(--st-2)}.st-3{background:var(--st-3)}
+.st-4{background:var(--st-4)}.st-5{background:var(--st-5)}.st-6{background:var(--st-6);color:#5e3a22;text-shadow:none}
+.st-7{background:var(--st-7);color:#5e3a22;text-shadow:none}
+.stool-legend{font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;margin-top:3px;font-weight:600}
+
+/* WEEK GRID */
+.week-grid{display:grid;grid-template-columns:88px repeat(7,1fr);gap:1px;background:var(--border);border:1px solid var(--border);font-size:11.5px;border-radius:6px;overflow:hidden}
+.week-grid>div{background:#fff;padding:5px 3px;text-align:center;min-height:32px;display:flex;align-items:center;justify-content:center;flex-direction:column;font-feature-settings:'tnum'}
+.week-grid .wg-h{background:var(--navy);color:#fff;font-weight:700;padding:6px 3px;font-size:11px}
+.week-grid .wg-h.today{background:var(--blue)}
+.week-grid .wg-lbl{background:var(--bg);color:var(--text2);font-weight:700;text-align:left;justify-content:flex-start;padding-left:9px;font-size:11.5px}
+.wg-stool{font-weight:700;color:#fff;padding:3px 7px !important;border-radius:4px;margin:2px;font-size:11.5px}
+.wg-stool.light{color:#5e3a22}
+
+/* CHART */
+.chart-wrap{background:#fff;padding:8px 4px;border-radius:6px}
+.chart-legend{display:flex;gap:12px;justify-content:center;font-size:11.5px;margin-top:4px;flex-wrap:wrap;color:var(--muted);font-weight:600}
+.chart-legend>span{display:flex;align-items:center;gap:4px}
+.chart-legend i{width:10px;height:10px;display:inline-block;border-radius:50%}
+
+/* SUMMARY ROW */
+.sum-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+.sum-cell{background:var(--bg-soft);border-radius:8px;padding:8px 6px;text-align:center;border:1px solid var(--border-soft)}
+.sum-cell .sl{font-size:10.5px;color:var(--muted);font-weight:600}
+.sum-cell .sv{font-size:17px;font-weight:800;color:var(--navy);margin-top:2px;font-feature-settings:'tnum'}
+.sum-cell .sv.warn{color:var(--red)}
+.sum-cell .su{font-size:10px;color:var(--muted);font-weight:500;margin-left:2px}
+
+/* ALERTS */
+.alert-banner{background:var(--red-soft);border-left:4px solid var(--red);padding:9px 13px;margin:10px 11px;border-radius:6px;font-size:12.5px;display:flex;gap:10px;align-items:flex-start}
+.alert-banner.warn{background:var(--amber-soft);border-left-color:var(--amber)}
+.alert-banner .ai{font-size:18px;line-height:1;margin-top:1px}
+.alert-banner .at{font-weight:800;color:var(--red);margin-bottom:2px;font-size:12.5px}
+.alert-banner.warn .at{color:var(--amber)}
+.alert-banner .am{color:var(--text)}
+
+/* ============================================================
+   LAB KANBAN (Pass 5: ordered → collected → awaiting → reported)
+   ============================================================ */
+.lab-ctrl{display:flex;gap:7px;align-items:center;padding:0 11px 6px;flex-wrap:wrap}
+.lab-cols{display:grid;grid-template-columns:1fr;gap:10px;padding:0 11px 14px}
+@media (min-width:768px){.lab-cols{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1100px){.lab-cols{grid-template-columns:repeat(4,1fr)}}
+.lab-col{background:var(--bg-soft);border-radius:var(--r);overflow:hidden;border:1px solid var(--border-soft);min-height:120px}
+.lab-col .h{padding:9px 12px;font-size:12px;font-weight:800;display:flex;justify-content:space-between;align-items:center;color:#fff;letter-spacing:.4px}
+.lab-col[data-st="ordered"] .h{background:#9aa3b8}
+.lab-col[data-st="collected"] .h{background:#5d80b3}
+.lab-col[data-st="awaiting"] .h{background:#d68910}
+.lab-col[data-st="reported"] .h{background:var(--teal)}
+.lab-col .h .n{background:rgba(255,255,255,.25);padding:1px 7px;border-radius:9px;font-size:11px}
+.lab-col .cards{padding:7px;display:flex;flex-direction:column;gap:6px}
+.lab-card{background:#fff;border-radius:7px;padding:8px 10px;border-left:3px solid var(--navy);box-shadow:var(--shadow);cursor:pointer;font-size:12px}
+.lab-card.urgent{border-left-color:var(--red);background:#fff7f5}
+.lab-card .ln{font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:3px}
+.lab-card .ln .urg{background:var(--red);color:#fff;padding:1px 5px;border-radius:8px;font-size:9.5px;font-weight:700;letter-spacing:.5px}
+.lab-card .li{font-size:11px;color:var(--text2);line-height:1.4}
+.lab-card .lt{font-size:10.5px;color:var(--muted);margin-top:3px;display:flex;justify-content:space-between}
+.lab-card .lr{margin-top:5px;padding-top:5px;border-top:1px dashed var(--border-soft);font-size:11px}
+.lab-card .lr .ab{color:var(--red);font-weight:700}
+.lab-empty{padding:14px 8px;text-align:center;color:var(--muted);font-size:11px}
+
+/* MEDS / NOTES list cards */
+.list-card{background:var(--bg-soft);border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid var(--border-soft)}
+.list-card .lc-hdr{display:flex;gap:7px;align-items:center;margin-bottom:6px}
+
+/* TOAST */
+.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(20px);background:rgba(30,58,95,.96);color:#fff;padding:10px 22px;border-radius:24px;font-size:13.5px;font-weight:700;z-index:1000;opacity:0;transition:all .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:rgba(192,57,43,.96)}
+.toast.ok{background:rgba(22,160,133,.96)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(15,25,45,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(2px)}
+.modal-bg.on{opacity:1;pointer-events:auto}
+.modal{background:#fff;border-radius:var(--r-lg);width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-md)}
+.modal-hdr{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:13px 18px;font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.modal-x{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;opacity:.85}
+.modal-body{padding:16px 18px;overflow-y:auto;flex:1}
+.modal-foot{padding:9px 14px;border-top:1px solid var(--border-soft);display:flex;gap:7px;justify-content:flex-end;background:var(--bg-soft)}
+
+/* SETTINGS */
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border-soft);gap:10px}
+.toggle-row:last-child{border-bottom:none}
+.toggle-row .label{font-size:13.5px;font-weight:600}
+.toggle-row .desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.tgl{position:relative;width:44px;height:25px;background:#c4cbd6;border-radius:13px;cursor:pointer;transition:background .2s;flex-shrink:0}
+.tgl.on{background:var(--teal)}
+.tgl::after{content:'';position:absolute;top:2px;left:2px;width:21px;height:21px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.tgl.on::after{transform:translateX(19px)}
+
+/* Quick record modal (Pass 4: 4-vital one-shot input) */
+.quick-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:10px}
+.qcell{background:var(--bg-soft);border-radius:8px;padding:9px 10px;border:1.5px solid var(--border-soft)}
+.qcell .ql{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:3px;display:flex;justify-content:space-between}
+.qcell .qr{color:var(--muted);font-weight:500;font-size:10px}
+.qcell input{width:100%;border:none;background:transparent;font-size:22px;font-weight:800;color:var(--text);padding:0;font-feature-settings:'tnum';min-height:30px}
+.qcell input:focus{outline:none;color:var(--navy)}
+.qcell.abn{border-color:var(--red);background:var(--red-soft)}
+.qcell.abn input{color:var(--red)}
+
+/* ============================================================
+   HORIZONTAL GRID (anesthesia-chart style: rows=items, cols=time)
+   ============================================================ */
+.hgrid-wrap{background:var(--bg-card);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin:10px 11px}
+.hgrid-ctrl{display:flex;gap:8px;padding:9px 12px;background:var(--bg-soft);border-bottom:1px solid var(--border-soft);align-items:center;flex-wrap:wrap}
+.hgrid-ctrl .meta{font-size:11px;color:var(--muted);font-weight:600;margin-left:auto;font-feature-settings:'tnum'}
+.hgrid-scroll{overflow:auto;-webkit-overflow-scrolling:touch;background:var(--bg-soft);position:relative;max-height:62vh}
+
+/* Vertical-fill panels (vitals/io/tx) - grid fills remaining space, thead always sticky */
+.panel.vfill.on{display:flex;flex-direction:column;overflow:hidden;padding-bottom:0}
+.panel.vfill .hgrid-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0}
+.panel.vfill .hgrid-scroll{flex:1;overflow:auto;max-height:none;padding-bottom:80px}
+.hgrid-tbl{border-collapse:separate;border-spacing:0;font-size:13px;font-feature-settings:'tnum';width:auto}
+.hgrid-tbl th,.hgrid-tbl td{padding:0;border:none;background:#fff;text-align:center;vertical-align:middle;height:42px}
+.hgrid-tbl th.time,.hgrid-tbl td.time{min-width:74px;width:74px}
+.hgrid-tbl thead th{position:sticky;top:0;background:var(--navy2);color:#fff;font-weight:700;font-size:11px;padding:5px 4px;z-index:2;border-bottom:2px solid var(--navy);border-right:1px solid rgba(255,255,255,.12);line-height:1.25;white-space:nowrap}
+.hgrid-tbl thead th .day{font-size:9.5px;opacity:.78;font-weight:500;display:block;margin-bottom:1px}
+.hgrid-tbl thead th.today{background:var(--blue)}
+.hgrid-tbl thead th.add-col{background:var(--blue-soft);color:var(--blue);cursor:pointer;font-size:16px;border-bottom-color:var(--blue);font-weight:800}
+.hgrid-tbl thead th.add-col:active{background:#bbd9ee}
+.hgrid-tbl thead th.del-col{position:absolute;top:1px;right:1px;background:rgba(255,255,255,.18);border:none;color:#fff;font-size:10px;cursor:pointer;padding:0 4px;border-radius:6px;line-height:14px;display:none}
+.hgrid-tbl thead th:hover .del-col{display:inline-block}
+.hgrid-tbl tbody th.label{position:sticky;left:0;background:var(--bg-soft);text-align:left;padding:6px 10px;font-weight:700;color:var(--text2);font-size:12px;z-index:1;min-width:118px;width:118px;box-shadow:2px 0 4px rgba(0,0,0,.05);white-space:nowrap;border-right:2px solid var(--border)}
+.hgrid-tbl tbody th.label .lu{font-size:10px;color:var(--muted);font-weight:500;display:block;margin-top:1px}
+.hgrid-tbl thead th.corner{position:sticky;left:0;z-index:3;background:var(--navy);text-align:left;font-weight:700;min-width:118px;width:118px;padding:5px 10px;letter-spacing:.5px;font-size:10.5px;border-right:2px solid var(--navy)}
+.hgrid-tbl tbody td{border-bottom:1px solid var(--border-soft);border-right:1px solid #c7d0db;padding:0;position:relative}
+.hgrid-tbl tbody tr:hover td{background:#fafdff}
+.hgrid-tbl tbody tr:hover th.label{background:#dde9f4;color:var(--navy)}
+.hgrid-tbl thead th.time{border-right:1px solid rgba(255,255,255,.2)}
+.hgrid-tbl tbody td.col-hl,.hgrid-tbl thead th.col-hl{background:#fff7e0 !important;box-shadow:inset 0 0 0 1px #f4d976}
+.hgrid-tbl thead th.time.col-hl{background:#5d80b3 !important;color:#fff}
+.hgrid-tbl tbody td.time:focus-within{background:#fff8d6;box-shadow:inset 0 0 0 2px #f4d976}
+.hgrid-tbl td input,.hgrid-tbl td select{width:100%;border:none;background:transparent;font-size:13px;text-align:center;padding:0 3px;height:40px;font-feature-settings:'tnum';font-family:inherit;color:var(--text)}
+.hgrid-tbl td input:focus,.hgrid-tbl td select:focus{outline:2px solid var(--blue);background:#fff;border-radius:3px}
+.hgrid-tbl td.abn input{color:var(--red);font-weight:700}
+.hgrid-tbl td.abn{background:var(--red-soft)}
+.hgrid-tbl td.maru-cell{cursor:pointer;font-size:18px;font-weight:800;-webkit-user-select:none}
+.hgrid-tbl td.maru-cell.on{background:#e8f5ef;color:var(--green)}
+.hgrid-tbl td.maru-cell.bat{background:#fdebe7;color:var(--red)}
+.hgrid-tbl td.maru-cell.off{color:#d4d8df}
+.hgrid-tbl td.stool-cell{cursor:pointer;font-size:15px;font-weight:800;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.18)}
+.hgrid-tbl td.stool-cell.light{color:#5e3a22;text-shadow:none}
+.hgrid-tbl td.stool-cell.empty{color:#d4d8df;background:#fff;text-shadow:none}
+.hgrid-tbl td.med-cell{cursor:pointer;font-weight:700;font-size:12px;-webkit-user-select:none}
+.hgrid-tbl td.med-cell .mc-dose{font-size:11px;line-height:1.15}
+.hgrid-tbl td.med-cell .mc-staff{font-size:9px;opacity:.7;display:block}
+.hgrid-tbl td.med-cell.done{background:#e8f5ef;color:#1e7a4d}
+.hgrid-tbl td.med-cell.pending{color:var(--amber);background:#fef9ed}
+.hgrid-tbl td.med-cell.overdue{background:var(--red-soft);color:var(--red);animation:pulse 1.6s ease-in-out infinite}
+.hgrid-tbl td.med-cell.empty{color:#d4d8df;font-size:18px;font-weight:400}
+.hgrid-tbl td.fluid-cell{background:#f3eaf7;font-weight:700;color:var(--sys-tx);font-size:12.5px;cursor:pointer}
+.hgrid-tbl td.fluid-cell.zero{color:#c5cad3;background:#fff}
+
+.hgrid-tbl tbody tr.section td,.hgrid-tbl tbody tr.section th{background:var(--bg);font-size:10.5px;font-weight:800;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;padding:4px 10px;height:24px;border-top:1.5px solid var(--border);border-bottom:1px solid var(--border)}
+.hgrid-tbl tbody tr.section th{position:sticky;left:0;z-index:1;box-shadow:2px 0 4px rgba(0,0,0,.04)}
+
+/* Vertical pct buttons (bottom=0, top=100) */
+.pct-quick{display:flex;flex-direction:column-reverse;gap:2px;padding:3px;min-height:42px;height:100%}
+.pct-quick button{padding:4px 2px;font-size:12px;background:#fff;border:1.5px solid var(--border-soft);color:var(--text2);cursor:pointer;border-radius:4px;font-weight:700;font-feature-settings:'tnum';flex:1;min-height:22px;font-family:inherit;-webkit-user-select:none}
+.pct-quick button:active{background:var(--green);color:#fff;border-color:var(--green);transform:scale(.96)}
+.pct-quick button.on{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* Tall row for food % buttons */
+.hgrid-tbl tbody tr.row-food td,.hgrid-tbl tbody tr.row-food th{height:138px}
+
+/* Empty state for tx grid */
+.hgrid-empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:13px}
+
+/* Mobile-narrower left column (iPhone-first) */
+.hgrid-tbl tbody th.label,.hgrid-tbl thead th.corner{width:84px;min-width:84px;padding:5px 7px;font-size:11.5px}
+.hgrid-tbl th.time,.hgrid-tbl td.time{min-width:64px;width:64px}
+@media (max-width:520px){
+  .hgrid-tbl tbody th.label,.hgrid-tbl thead th.corner{width:70px;min-width:70px;padding:4px 5px;font-size:10.5px}
+  .hgrid-tbl th.time,.hgrid-tbl td.time{min-width:58px;width:58px}
+  .hgrid-tbl tbody th.label .lu{font-size:9px}
+}
+
+/* Split ○ / × buttons in cell */
+.maru-split{display:flex;gap:2px;padding:3px;height:42px}
+.maru-split button{flex:1;font-size:14px;font-weight:800;background:#fff;border:1.5px solid var(--border-soft);color:var(--muted);border-radius:4px;cursor:pointer;-webkit-user-select:none;font-family:inherit}
+.maru-split button.on-circle{background:var(--green);color:#fff;border-color:var(--green)}
+.maru-split button.on-cross{background:var(--red);color:#fff;border-color:var(--red)}
+.maru-split button:active{transform:scale(.94)}
+
+/* Food picker cell button */
+.food-cell-btn{width:100%;height:42px;background:transparent;border:none;font-size:11px;color:var(--text);cursor:pointer;padding:2px;line-height:1.2;-webkit-user-select:none;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.food-cell-btn:active{background:var(--blue-soft)}
+.food-cell-btn .fn{font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.food-cell-btn .fg{color:var(--muted);font-size:10.5px;font-feature-settings:'tnum';margin-top:1px}
+.food-cell-btn.empty{color:#c5cad3;font-size:18px;font-weight:400}
+
+/* Food picker grid */
+.food-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:14px}
+.food-grid button{padding:11px 9px;background:var(--bg-soft);border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-weight:600;font-size:13px;text-align:center;color:var(--text);font-family:inherit;min-height:42px}
+.food-grid button.on{background:var(--blue-soft);border-color:var(--blue);color:var(--navy);box-shadow:0 0 0 1px var(--blue) inset}
+.food-grid button:active{transform:scale(.97)}
+
+/* Button group for species/sex */
+.btn-group{display:flex;gap:5px;flex-wrap:wrap}
+.btn-group button{padding:8px 14px;font-size:13px;background:#fff;border:1.5px solid var(--border);color:var(--text2);border-radius:7px;cursor:pointer;font-weight:600;min-height:40px;font-family:inherit}
+.btn-group button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-group button:active{transform:scale(.96)}
+
+/* Auto-expand textarea */
+.ftxt-auto{overflow-y:hidden;resize:none;min-height:50px;transition:height .15s}
+
+/* Schedule modal */
+.sched-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;flex:1}
+.sched-grid button{padding:8px 4px;font-size:12px;background:#fff;border:1.5px solid var(--border);border-radius:5px;cursor:pointer;font-weight:700;color:var(--text2);font-feature-settings:'tnum';font-family:inherit;min-height:36px}
+.sched-grid button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.sched-grid button:active{transform:scale(.96)}
+.sched-days{display:flex;gap:5px;flex:1}
+.sched-days button{flex:1;padding:9px 5px;background:#fff;border:1.5px solid var(--border);border-radius:5px;cursor:pointer;font-weight:700;font-size:12.5px;color:var(--text2);font-family:inherit;min-height:36px}
+.sched-days button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.sched-days button:active{transform:scale(.96)}
+.sched-preset{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.sched-preset button{padding:6px 10px;background:#eef5fb;border:1px solid #cce0f0;border-radius:5px;cursor:pointer;font-weight:700;font-size:11px;color:var(--navy);font-family:inherit}
+.sched-preset button:active{background:var(--blue);color:#fff}
+
+/* Lab photos */
+.lab-photos{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.lab-photo-thumb{width:62px;height:62px;border-radius:5px;background:#000;background-size:cover;background-position:center;cursor:pointer;border:1px solid var(--border);position:relative;flex-shrink:0}
+.lab-photo-thumb .x{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;padding:0}
+.photo-viewer{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.photo-viewer img{max-width:96%;max-height:96%;border-radius:6px}
+.photo-viewer.hidden{display:none}
+
+/* Birthday + age display */
+.age-display{font-size:13px;color:var(--navy);font-weight:700;padding:6px 10px;background:var(--blue-soft);border-radius:6px;flex:1;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center}
+
+/* Visit (面会) styles */
+.visit-card{background:var(--bg-soft);border-radius:8px;padding:11px 13px;margin-bottom:10px;border:1px solid var(--border-soft);border-left:4px solid var(--sys-obs)}
+.visit-card.mood-relief{border-left-color:#27ae60}
+.visit-card.mood-neutral{border-left-color:#7a8aa5}
+.visit-card.mood-anxiety{border-left-color:#f39c12}
+.visit-card.mood-distrust{border-left-color:#8e44ad}
+.visit-card.mood-anger{border-left-color:#c0392b}
+.visit-card.mood-sad{border-left-color:#2980b9}
+.visit-card .vh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap}
+.visit-card .vh-time{font-size:11.5px;color:var(--muted);font-weight:600;font-feature-settings:'tnum'}
+.visit-card .vh-who{font-size:14px;font-weight:700;color:var(--text);flex:1;min-width:0}
+.visit-card .mood-tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.visit-card .vt{font-size:12.5px;color:var(--text);line-height:1.55;margin:5px 0;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.visit-card .vg{font-size:12px;color:var(--text2);background:#fff;border-radius:5px;padding:6px 9px;margin-top:5px;border:1px dashed var(--border);display:flex;gap:6px;align-items:center}
+.visit-card .vg::before{content:'🎁';font-size:13px}
+.visit-card .vc-act{margin-top:7px;display:flex;gap:5px;justify-content:flex-end}
+
+.mood-tag.relief{background:#e8f5ef;color:#27ae60}
+.mood-tag.neutral{background:#eef2f7;color:#7a8aa5}
+.mood-tag.anxiety{background:#fef3e0;color:#f39c12}
+.mood-tag.distrust{background:#f3e8f7;color:#8e44ad}
+.mood-tag.anger{background:#fbe9e7;color:#c0392b}
+.mood-tag.sad{background:#e7f0f9;color:#2980b9}
+
+.mood-buttons{display:flex;gap:5px;flex-wrap:wrap}
+.mood-buttons button{padding:7px 12px;font-size:13px;background:var(--bg-soft);border:1.5px solid var(--border);border-radius:18px;cursor:pointer;font-weight:600;color:var(--text2);font-family:inherit;min-height:38px}
+.mood-buttons button:active{transform:scale(.96)}
+.mood-buttons button.on{color:#fff;border-color:transparent}
+.mood-buttons button.on.relief{background:#27ae60}
+.mood-buttons button.on.neutral{background:#7a8aa5}
+.mood-buttons button.on.anxiety{background:#f39c12}
+.mood-buttons button.on.distrust{background:#8e44ad}
+.mood-buttons button.on.anger{background:#c0392b}
+.mood-buttons button.on.sad{background:#2980b9}
+
+/* Color-only marker boxes (decorative for staff-only meta) */
+.fh-markers{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.marker-box{width:14px;height:14px;border-radius:3px;display:inline-block;box-shadow:0 0 0 1px rgba(255,255,255,.25) inset,0 1px 2px rgba(0,0,0,.25);flex-shrink:0;cursor:help}
+.marker-box.empty{background:#e8ecf0;box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 1px 1px rgba(0,0,0,.18)}
+.marker-box.zoonotic{box-shadow:0 0 0 2px #fde047,0 0 0 3px rgba(0,0,0,.2)}
+.marker-box.striped{background-image:repeating-linear-gradient(45deg,transparent 0 3px, rgba(0,0,0,.25) 3px 6px)}
+
+/* Infectious disease pill (medical info - OK to show text) */
+.disease-pill{background:#8b0000;color:#fff;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:10px;letter-spacing:.5px;display:inline-flex;align-items:center;gap:3px;border:1px solid #5e0000;box-shadow:0 0 0 1px rgba(255,255,255,.18) inset;animation:diseaseGlow 2.5s ease-in-out infinite}
+.disease-pill::before{content:'☣';font-size:11px}
+@keyframes diseaseGlow{0%,100%{box-shadow:0 0 0 1px rgba(255,255,255,.18) inset, 0 0 4px rgba(255,80,80,.4)}50%{box-shadow:0 0 0 1px rgba(255,255,255,.18) inset, 0 0 12px rgba(255,80,80,.85)}}
+
+/* Color legend modal */
+.legend-row{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border-soft)}
+.legend-row:last-child{border:none}
+.legend-row .lh{font-size:12px;color:var(--text)}
+.legend-row .lh small{display:block;color:var(--muted);font-size:10.5px;margin-top:1px}
+.legend-section{font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin:10px 0 4px;padding-bottom:4px;border-bottom:2px solid var(--border)}
+
+/* Bulk med schedule rows: name / dose / unit / route / delete */
+.med-list-row{display:grid;grid-template-columns:1fr 60px 70px 72px 24px;gap:5px;align-items:center;background:var(--bg-soft);border-radius:6px;padding:5px 7px;margin-bottom:5px;border:1px solid var(--border-soft)}
+.med-list-row input,.med-list-row select{border:none;background:transparent;font-size:13px;padding:5px 4px;font-family:inherit;width:100%;min-width:0;font-feature-settings:'tnum'}
+.med-list-row input:focus,.med-list-row select:focus{outline:1.5px solid var(--blue);border-radius:3px;background:#fff}
+.med-list-row select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%237a8aa5' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;padding-right:14px}
+.med-list-row .del{background:none;border:none;color:#c5cad3;font-size:16px;cursor:pointer;padding:2px 4px}
+.med-list-row .del:hover{color:var(--red)}
+.med-list-row .col-hdr{font-size:10px;color:var(--muted);font-weight:700;padding:0 4px;text-transform:uppercase;letter-spacing:.4px}
+.med-list-head{display:grid;grid-template-columns:1fr 60px 70px 72px 24px;gap:5px;padding:0 7px 4px;font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.med-list-empty{padding:10px;text-align:center;color:var(--muted);font-size:12px;font-style:italic}
+@media (max-width:520px){
+  .med-list-row,.med-list-head{grid-template-columns:1fr 50px 56px 62px 22px;gap:3px}
+  .med-list-row input,.med-list-row select{font-size:12px;padding:5px 2px}
+}
+
+/* ============================================================
+   FAB (Pass-fix #2: most frequent action gets prominent target)
+   ============================================================ */
+.fab{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(22px,calc(env(safe-area-inset-bottom) + 18px));width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,var(--blue) 0%,var(--navy) 100%);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 6px 20px rgba(20,40,70,.35),0 2px 6px rgba(20,40,70,.18);z-index:55;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;-webkit-user-select:none}
+.fab:active{transform:scale(.93);box-shadow:0 3px 12px rgba(20,40,70,.25)}
+.fab.hidden{display:none}
+.fab .fab-label{position:absolute;right:72px;top:50%;transform:translateY(-50%);background:rgba(30,58,95,.95);color:#fff;padding:5px 12px;border-radius:14px;font-size:12px;font-weight:700;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
+@media (min-width:768px){ .fab:hover .fab-label{opacity:1} }
+
+/* Undo link inside toast */
+.toast .undo-link{margin-left:14px;text-decoration:underline;cursor:pointer;font-weight:700;opacity:.95;padding:2px 6px;border-radius:5px;display:inline-block}
+.toast .undo-link:active{background:rgba(255,255,255,.22)}
+
+/* ============================================================
+   HANDOVER VIEW (Pass-fix #3: shift change landing page)
+   ============================================================ */
+.ho-intro{background:linear-gradient(135deg,#eaf2fb 0%,#f3f6fa 100%);margin:10px 11px 0;border-radius:var(--r);padding:10px 14px;display:flex;align-items:center;gap:10px;border-left:4px solid var(--blue);font-size:12.5px;color:var(--text2)}
+.ho-intro .ico{font-size:20px}
+.ho-intro .now{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600;font-feature-settings:'tnum'}
+
+.ho-spark-rows{display:flex;flex-direction:column;gap:6px}
+.ho-spark-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-soft);border-radius:8px;border:1px solid var(--border-soft)}
+.ho-spark-row.abn{background:var(--red-soft);border-color:#f5cdc7}
+.ho-spark-label{width:88px;font-size:12px;font-weight:700;color:var(--text2);flex-shrink:0;line-height:1.2}
+.ho-spark-label .u{font-size:10px;color:var(--muted);font-weight:500;display:block;margin-top:1px}
+.ho-spark-svg{flex:1;min-width:60px;display:flex;align-items:center;overflow:hidden}
+.ho-spark-svg svg{width:100%;height:30px;max-width:240px}
+.ho-spark-val{font-size:22px;font-weight:800;color:var(--navy);width:62px;text-align:right;font-feature-settings:'tnum';line-height:1}
+.ho-spark-row.abn .ho-spark-val{color:var(--red)}
+.ho-spark-trend{font-size:18px;font-weight:800;width:24px;text-align:center;flex-shrink:0}
+.ho-spark-range{font-size:10px;color:var(--muted);width:74px;text-align:left;font-weight:500;font-feature-settings:'tnum';flex-shrink:0}
+
+.ho-feed{max-height:480px;overflow-y:auto}
+.ho-feed-row{display:grid;grid-template-columns:62px 26px 1fr;gap:8px;padding:9px 4px;align-items:flex-start;border-bottom:1px dashed var(--border-soft)}
+.ho-feed-row:last-child{border-bottom:none}
+.ho-feed-row.abn{background:linear-gradient(90deg,var(--red-soft) 0%,transparent 100%);border-radius:4px;padding-left:8px;border-bottom-color:transparent}
+.ho-feed-row.future{opacity:.92}
+.ho-feed-time{font-size:11px;font-weight:700;color:var(--muted);padding-top:2px;font-feature-settings:'tnum';line-height:1.4}
+.ho-feed-time .rel{display:block;font-size:9.5px;font-weight:500;opacity:.8}
+.ho-feed-icon{font-size:15px;text-align:center;padding-top:1px}
+.ho-feed-text{font-size:12.5px;color:var(--text);line-height:1.5;word-break:break-word}
+.ho-feed-main{font-weight:500}
+.ho-feed-staff{font-size:10.5px;color:var(--muted);margin-top:2px}
+.ho-feed-row.abn .ho-feed-main{color:var(--red);font-weight:600}
+
+.ho-empty{text-align:center;color:var(--muted);padding:18px 8px;font-size:12px}
+
+/* iPad/PC adjustments */
+@media (min-width:768px){
+  .tab{font-size:11px;padding:8px 6px}
+  .tab .ti{font-size:19px}
+  .case-card{padding:16px 20px}
+  .card{margin:12px 18px}
+  .sum-row{grid-template-columns:repeat(6,1fr)}
+  .flow-time-left,.lane-label{width:108px}
+  .fab{width:68px;height:68px;font-size:28px}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ PATIENT LIST ============ -->
+<div id="screenList" class="screen">
+  <div class="app-hdr">
+    <div>
+      <div class="app-title">🏥 入院管理</div>
+      <div class="app-sub">HOSPITAL PATIENT RECORDS</div>
+    </div>
+    <div class="hdr-actions">
+      <button class="btn-icon" onclick="exportAll()" title="エクスポート">⬇</button>
+      <button class="btn-icon" onclick="importPrompt()" title="インポート">⬆</button>
+      <button class="btn-new" onclick="newPatient()">＋ 新規</button>
+    </div>
+  </div>
+  <div class="cases-list" id="patientList"></div>
+</div>
+
+<!-- ============ PATIENT DETAIL ============ -->
+<div id="screenDetail" class="screen hidden">
+  <div class="form-hdr">
+    <div class="fh-top">
+      <button class="btn-back" onclick="showList()">‹ 一覧</button>
+      <div class="hdr-title" id="dtTitle">—</div>
+      <div class="weight-pill" id="dtWeight">— kg</div>
+      <button class="btn-quick" id="btnUndo" onclick="undo()" title="元に戻す (⌘Z)" style="background:rgba(255,255,255,.13);color:#fff;min-width:36px;padding:5px 9px">↶</button>
+      <button class="btn-quick" onclick="openQuickRecord()" title="クイック記録">⚡ 記録</button>
+    </div>
+    <div class="fh-vitals" id="fhVitals"></div>
+    <div class="fh-status" id="fhStatus"></div>
+    <div class="fh-status" id="fhMeta" style="margin-top:4px"></div>
+  </div>
+  <div class="tab-bar" id="tabBar">
+    <div class="tab on" data-tab="handover"><span class="ti">🔔</span>申し送り</div>
+    <div class="tab" data-tab="vitals"><span class="ti">📊</span>バイタル</div>
+    <div class="tab" data-tab="inout"><span class="ti">💧</span>In/Out</div>
+    <div class="tab" data-tab="tx"><span class="ti">💉</span>治療</div>
+    <div class="tab" data-tab="labs"><span class="ti">🔬</span>検査</div>
+    <div class="tab" data-tab="visits"><span class="ti">👨‍👩‍👧</span>面会</div>
+    <div class="tab" data-tab="notes"><span class="ti">📝</span>メモ</div>
+    <div class="tab" data-tab="chart"><span class="ti">📉</span>グラフ</div>
+    <div class="tab" data-tab="info"><span class="ti">📋</span>情報</div>
+    <div class="tab" data-tab="settings"><span class="ti">⚙️</span>設定</div>
+  </div>
+  <div class="form-main">
+
+    <!-- HANDOVER PANEL (Pass-fix #3: shift change landing) -->
+    <div class="panel on" id="pHandover">
+      <div class="ho-intro">
+        <span class="ico">🌅</span>
+        <div><b>シフトチェンジ用ビュー</b> — 直近の状態・申し送り事項を一目で把握できます。</div>
+        <span class="now" id="hoNow">—</span>
+      </div>
+      <div id="hoAlerts"></div>
+      <div class="card sys-circ">
+        <div class="c-hdr">📊 直近12時間のバイタル <span class="c-hdr-en">VITAL SPARK</span></div>
+        <div class="c-body" id="hoSparklines"></div>
+      </div>
+      <div class="card sys-renal">
+        <div class="c-hdr">💧 直近24時間のIn/Out <span class="c-hdr-en">24H I/O</span></div>
+        <div class="c-body" id="hoIoSum"></div>
+      </div>
+      <div class="card sys-tx">
+        <div class="c-hdr">⏰ 次の8時間の予定 <span class="c-hdr-en">UPCOMING</span></div>
+        <div class="c-body" id="hoSchedule"></div>
+      </div>
+      <div class="card sys-obs">
+        <div class="c-hdr">⏱ 直近8時間の活動 <span class="c-hdr-en">RECENT ACTIVITY</span></div>
+        <div class="c-body"><div class="ho-feed" id="hoFeed"></div></div>
+      </div>
+      <div style="height:18px"></div>
+    </div>
+
+    <!-- INFO PANEL -->
+    <div class="panel" id="pInfo">
+      <div class="card sys-obs">
+        <div class="c-hdr">患者情報 <span class="c-hdr-en">PATIENT</span></div>
+        <div class="c-body">
+          <div class="frow"><span class="flabel">患者ID</span><input class="fin" id="iPid"></div>
+          <div class="frow"><span class="flabel">名前</span><input class="fin" id="iName"></div>
+          <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">動物種</span>
+            <div class="btn-group" id="iSpeciesBtns" style="flex:1">
+              <button data-v="犬">🐶 犬</button>
+              <button data-v="猫">🐱 猫</button>
+              <button data-v="うさぎ">🐰 うさぎ</button>
+              <button data-v="その他">その他</button>
+            </div>
+          </div>
+          <div class="frow"><span class="flabel">品種</span><input class="fin" id="iBreed" placeholder="トイプー 等"></div>
+          <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">性別</span>
+            <div class="btn-group" id="iSexBtns" style="flex:1">
+              <button data-v="♂">♂</button>
+              <button data-v="♂(去)">♂ 去勢</button>
+              <button data-v="♀">♀</button>
+              <button data-v="♀(避)">♀ 避妊</button>
+              <button data-v="不明">不明</button>
+            </div>
+          </div>
+          <div class="frow"><span class="flabel">生年月日</span>
+            <input class="fin fin-md" id="iBirthday" type="date" onchange="recalcAge()">
+            <div class="age-display" id="iAgeDisplay">—</div>
+          </div>
+          <div class="frow"><span class="flabel">体重</span><input class="fin fin-md" id="iWeight" type="number" step="0.01"><span class="unit">kg</span></div>
+          <div class="frow"><span class="flabel">入院日</span><input class="fin fin-md" id="iAdmit" type="date"></div>
+          <div class="frow"><span class="flabel">主治医</span><input class="fin" id="iDoc"></div>
+          <div class="frow"><span class="flabel">病名</span><input class="fin" id="iCondition" placeholder="例: 急性膵炎、IMHA、AKI"></div>
+          <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">診断/主訴</span>
+            <textarea class="ftxt ftxt-auto" id="iDx" oninput="autoExpand(this)" placeholder="現病歴・主訴・診断"></textarea></div>
+          <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">退院目標</span>
+            <textarea class="ftxt ftxt-auto" id="iGoal" oninput="autoExpand(this)" placeholder="例: 食事100%摂取、嘔吐なし、CRP正常化、抗菌薬経口移行 等"></textarea></div>
+        </div>
+      </div>
+      <div class="card sys-tx">
+        <div class="c-hdr">☣ 感染性疾患 <span class="c-hdr-en">INFECTIOUS</span></div>
+        <div class="c-body">
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">該当する疾患を選択（複数可）。上部に赤バッジで常時表示されます。</div>
+          <div class="btn-group" id="iDiseaseBtns">
+            <button data-v="FIV">FIV</button>
+            <button data-v="FeLV">FeLV</button>
+            <button data-v="パルボ">パルボ</button>
+            <button data-v="SFTS">SFTS</button>
+            <button data-v="レプトスピラ">レプトスピラ</button>
+            <button data-v="ジアルジア">ジアルジア</button>
+            <button data-v="疥癬">疥癬</button>
+            <button data-v="ノミ・マダニ">ノミ・マダニ</button>
+            <button data-v="MRSA">MRSA</button>
+          </div>
+        </div>
+      </div>
+      <div class="card sys-obs">
+        <div class="c-hdr alt">動物の性格 <span class="c-hdr-en">PET</span></div>
+        <div class="c-body">
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">対応スタッフ用。上部に<b>色のみ</b>で表示されます（文字なし）。</div>
+          <div class="btn-group" id="iTempBtns">
+            <button data-v="calm">普通</button>
+            <button data-v="fear">怖がり</button>
+            <button data-v="angry">怒りやすい</button>
+            <button data-v="friendly">人懐っこい</button>
+          </div>
+        </div>
+      </div>
+      <div class="card sys-obs">
+        <div class="c-hdr alt">飼い主の対応注意 <span class="c-hdr-en">OWNER</span></div>
+        <div class="c-body">
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">対応スタッフ用。上部に<b>色のみ</b>で表示（文字は出ません）。</div>
+          <div class="btn-group" id="iOwnerBtns">
+            <button data-v="normal">普通</button>
+            <button data-v="cooperative">協力的</button>
+            <button data-v="claim">クレーマー気質</button>
+            <button data-v="aggressive">攻撃的</button>
+            <button data-v="over">過保護</button>
+            <button data-v="anxious">心配性</button>
+            <button data-v="low">理解度低い</button>
+          </div>
+        </div>
+      </div>
+      <div class="card sys-circ">
+        <div class="c-hdr">基準範囲（アラート判定）<span class="c-hdr-en">NORMAL RANGE</span></div>
+        <div class="c-body">
+          <div class="frow"><span class="flabel flabel-w">体温 ℃</span>
+            <input class="fin fin-sm" id="rTempL" type="number" step="0.1">〜<input class="fin fin-sm" id="rTempH" type="number" step="0.1"></div>
+          <div class="frow"><span class="flabel flabel-w">心拍 回/分</span>
+            <input class="fin fin-sm" id="rHrL" type="number">〜<input class="fin fin-sm" id="rHrH" type="number"></div>
+          <div class="frow"><span class="flabel flabel-w">呼吸 回/分</span>
+            <input class="fin fin-sm" id="rRrL" type="number">〜<input class="fin fin-sm" id="rRrH" type="number"></div>
+          <div class="frow"><span class="flabel flabel-w">SpO₂ %</span>
+            <input class="fin fin-sm" id="rSpL" type="number">〜<input class="fin fin-sm" id="rSpH" type="number"></div>
+        </div>
+      </div>
+      <div style="height:18px"></div>
+    </div>
+
+    <!-- VITALS PANEL (horizontal: rows=items, cols=time) -->
+    <div class="panel vfill" id="pVitals">
+      <div id="alertsArea"></div>
+      <div class="hgrid-wrap">
+        <div class="hgrid-ctrl">
+          <button class="btn btn-sm" onclick="openScheduler('vital')">📅 予定追加</button>
+          <button class="btn btn-sm btn-sec" onclick="addTimeColumn('vitals')">＋ 時刻</button>
+          <button class="btn btn-sm" onclick="quickIoNow('urinePresent','○')" style="background:var(--teal)">尿 ○</button>
+          <button class="btn btn-sm" onclick="quickIoNow('stoolPresent','○')" style="background:#a06845">便 ○</button>
+          <span class="meta" id="vGridMeta"></span>
+        </div>
+        <div class="hgrid-scroll" id="vGridScroll">
+          <table class="hgrid-tbl" id="vGrid"></table>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);padding:0 14px 12px;line-height:1.6">
+        ※ 縦＝項目、横＝時刻。基準範囲外は赤ハイライト。<br>
+        ※ 食事%は0/25/50/75/100ワンタップ、尿/便は○タップで記録、便スコアは色付プルダウン。
+      </div>
+      <div style="margin:0 14px 18px;background:var(--bg-soft);border-radius:8px;padding:10px;border:1px solid var(--border-soft)">
+        <div style="font-size:11.5px;color:var(--text2);margin-bottom:6px;font-weight:700">便スコア凡例（水分量グラデーション）</div>
+        <div class="stool-pal" style="pointer-events:none">
+          <div class="stool-i st-1">1</div><div class="stool-i st-2">2</div>
+          <div class="stool-i st-3">3</div><div class="stool-i st-4">4</div>
+          <div class="stool-i st-5">5</div><div class="stool-i st-6">6</div>
+          <div class="stool-i st-7">7</div>
+        </div>
+        <div class="stool-legend"><span>← 硬便/便秘</span><span>正常</span><span>水様便 →</span></div>
+      </div>
+    </div>
+
+    <!-- IN/OUT PANEL (horizontal: rows=items, cols=time) -->
+    <div class="panel vfill" id="pInout">
+      <div class="hgrid-wrap">
+        <div class="hgrid-ctrl">
+          <button class="btn btn-sm btn-sec" onclick="addTimeColumn('io')">＋ 時刻</button>
+          <button class="btn btn-sm" onclick="quickIoNow('urinePresent','○')" style="background:var(--teal)">尿 ○</button>
+          <button class="btn btn-sm" onclick="quickIoNow('stoolPresent','○')" style="background:#a06845">便 ○</button>
+          <span class="meta" id="ioGridMeta"></span>
+        </div>
+        <div class="hgrid-scroll" id="ioGridScroll">
+          <table class="hgrid-tbl" id="ioGrid"></table>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);padding:0 14px 18px;line-height:1.6">
+        ※ 食事内容や備考も同時に記録できます。バイタル側で打った値もここに表示されます（時刻が一致する場合）。
+      </div>
+    </div>
+
+    <!-- TREATMENT PANEL (horizontal: rows=drugs, cols=time) -->
+    <div class="panel vfill" id="pTx">
+      <div class="hgrid-wrap">
+        <div class="hgrid-ctrl">
+          <button class="btn btn-sm" onclick="openBulkMedScheduler()">💊 薬剤一括予定</button>
+          <button class="btn btn-sm btn-sec" onclick="openScheduler('med')">📅 単一予定</button>
+          <button class="btn btn-sm btn-sec" onclick="addFluidDrug()">＋ 輸液</button>
+          <button class="btn btn-sm btn-sec" onclick="addTimeColumn('tx')">＋ 時刻</button>
+          <span class="meta" id="txGridMeta"></span>
+        </div>
+        <div class="hgrid-scroll" id="txGridScroll">
+          <table class="hgrid-tbl" id="txGrid"></table>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);padding:0 14px 18px;line-height:1.6">
+        ※ 薬剤＝1行。投薬時刻のセルをタップで「✓ 実施」、もう一度タップで予定に戻す。<br>
+        ※ 輸液は速度(mL/h)を直接編集。0を入れると終了扱い。投薬予定時刻超過は赤で点滅。
+      </div>
+    </div>
+
+    <!-- LABS PANEL (Pass 5: kanban workflow) -->
+    <div class="panel" id="pLabs">
+      <div class="lab-ctrl" style="padding-top:12px">
+        <button class="btn" onclick="openLabEdit(null)">＋ 検査依頼</button>
+        <div style="margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:600" id="labStat"></div>
+      </div>
+      <div class="lab-cols" id="labCols"></div>
+      <div style="font-size:11px;color:var(--muted);padding:0 14px 18px;line-height:1.6">
+        ※ カードクリックで状態変更・結果入力。<br>
+        🚨 緊急依頼は赤帯表示。結果値の異常マーク（↑↓）は基準範囲から自動判定。
+      </div>
+    </div>
+
+    <!-- NOTES PANEL -->
+    <div class="panel" id="pNotes">
+      <div class="card sys-obs">
+        <div class="c-hdr">観察 / 申し送り <span class="c-hdr-en">OBSERVATION</span>
+          <button class="btn btn-sm" onclick="addNoteRow()">＋ 追加</button>
+        </div>
+        <div class="c-body" id="notesList"></div>
+      </div>
+    </div>
+
+    <!-- VISITS PANEL (面会) -->
+    <div class="panel" id="pVisits">
+      <div class="card sys-obs">
+        <div class="c-hdr">面会記録 <span class="c-hdr-en">FAMILY VISITS</span>
+          <button class="btn btn-sm" onclick="openVisitEdit(null)">＋ 面会記録</button>
+        </div>
+        <div class="c-body" id="visitsList"></div>
+      </div>
+      <div style="height:18px"></div>
+    </div>
+
+    <!-- CHART PANEL -->
+    <div class="panel" id="pChart">
+      <div class="card sys-circ">
+        <div class="c-hdr">TPR / SpO₂ <span class="c-hdr-en">VITAL TREND</span></div>
+        <div class="c-body">
+          <div class="chart-wrap" id="chartArea"></div>
+          <div class="chart-legend">
+            <span><i style="background:#c0392b"></i>体温(左軸)</span>
+            <span><i style="background:#2e86c1"></i>心拍(右軸)</span>
+            <span><i style="background:#27ae60"></i>呼吸(右軸)</span>
+            <span><i style="background:#7b4f9e"></i>SpO₂(右側80-100)</span>
+          </div>
+        </div>
+      </div>
+      <div class="card sys-obs">
+        <div class="c-hdr alt">体重推移 <span class="c-hdr-en">BODY WEIGHT</span></div>
+        <div class="c-body"><div class="chart-wrap" id="chartWt"></div></div>
+      </div>
+      <div class="card sys-gi">
+        <div class="c-hdr alt">便スコア（直近1週間）<span class="c-hdr-en">STOOL SCORE</span></div>
+        <div class="c-body"><div class="chart-wrap" id="chartStool"></div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PANEL -->
+    <div class="panel" id="pSettings">
+      <div class="card sys-obs">
+        <div class="c-hdr">表示項目カスタマイズ <span class="c-hdr-en">FIELDS</span></div>
+        <div class="c-body" id="fieldToggles"></div>
+      </div>
+      <div class="card sys-resp">
+        <div class="c-hdr alt">通知・アラート <span class="c-hdr-en">ALERTS</span></div>
+        <div class="c-body">
+          <div class="toggle-row">
+            <div><div class="label">ブラウザ通知</div>
+              <div class="desc">基準範囲外バイタル・投薬予定時刻超過を通知</div></div>
+            <div class="tgl" id="tglNotif" onclick="toggleNotif()"></div>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:var(--muted)">状態: <span id="notifStatus">—</span></div>
+        </div>
+      </div>
+      <div class="card sys-tx">
+        <div class="c-hdr alt">退院サマリ <span class="c-hdr-en">DISCHARGE SUMMARY</span></div>
+        <div class="c-body">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:8px">入院期間中の経過要約を自動生成します（飼い主に見せる用：感染症マーク/性格/面会気分は<b>含まれません</b>）。</div>
+          <button class="btn" onclick="genDischarge()">📄 サマリを生成</button>
+        </div>
+      </div>
+      <div class="card sys-obs">
+        <div class="c-hdr alt">色凡例（スタッフ専用）<span class="c-hdr-en">COLOR LEGEND</span></div>
+        <div class="c-body">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:8px">上部の色付ボックスの意味を確認。<b>飼い主には見せないでください</b>。</div>
+          <button class="btn btn-sec" onclick="openLegend()">🎨 凡例を表示</button>
+        </div>
+      </div>
+      <div class="card sys-renal">
+        <div class="c-hdr alt">データ管理 <span class="c-hdr-en">DATA</span></div>
+        <div class="c-body">
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <button class="btn btn-sec" onclick="exportPatient()">この患者をエクスポート</button>
+            <button class="btn btn-warn" onclick="dischargePatient()">退院 → アーカイブ</button>
+            <button class="btn btn-danger" onclick="deletePatient()">削除</button>
+          </div>
+        </div>
+      </div>
+      <div style="height:18px"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FAB (Pass-fix #2: prominent quick record) -->
+<button class="fab hidden" id="fab" onclick="openQuickRecord()" aria-label="クイック記録">⚡<div class="fab-label">⚡ クイック記録 (TPR入力)</div></button>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- QUICK RECORD MODAL (Pass 4) -->
+<div class="modal-bg" id="quickModal">
+  <div class="modal">
+    <div class="modal-hdr">⚡ クイック記録 <button class="modal-x" onclick="closeModal('quickModal')">×</button></div>
+    <div class="modal-body">
+      <div style="display:flex;gap:7px;align-items:center;margin-bottom:12px">
+        <span class="flabel">日時</span>
+        <input class="fin fin-md" type="datetime-local" id="qkAt">
+        <button class="btn-now" onclick="document.getElementById('qkAt').value=nowLocalISO()">今</button>
+      </div>
+      <div class="quick-grid" id="qkGrid"></div>
+      <div class="frow"><span class="flabel">担当</span><input class="fin" id="qkStaff"></div>
+      <div class="frow"><span class="flabel">メモ</span><input class="fin" id="qkNote" placeholder="任意"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal('quickModal')">キャンセル</button>
+      <button class="btn" onclick="saveQuickRecord()">💾 記録</button>
+    </div>
+  </div>
+</div>
+
+<!-- LAB EDIT MODAL -->
+<div class="modal-bg" id="labModal">
+  <div class="modal">
+    <div class="modal-hdr" id="labModalTitle">検査依頼 <button class="modal-x" onclick="closeModal('labModal')">×</button></div>
+    <div class="modal-body">
+      <div class="frow"><span class="flabel">依頼日時</span>
+        <input class="fin fin-md" type="datetime-local" id="lbAt">
+        <button class="btn-now" onclick="document.getElementById('lbAt').value=nowLocalISO()">今</button>
+        <span class="flabel" style="margin-left:6px">緊急</span>
+        <div class="tgl" id="lbUrgent" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="frow"><span class="flabel">種別</span>
+        <select class="fin fin-md" id="lbType">
+          <option value="血液">血液検査</option>
+          <option value="尿">尿検査</option>
+          <option value="便">便検査</option>
+          <option value="画像">画像検査</option>
+          <option value="病理">病理</option>
+          <option value="その他">その他</option>
+        </select>
+        <span class="flabel">外注</span>
+        <div class="tgl" id="lbExt" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="frow"><span class="flabel">項目</span>
+        <input class="fin" id="lbItems" placeholder="CBC, 生化, CRP, cPL 等"></div>
+      <div class="frow"><span class="flabel">指示医</span>
+        <input class="fin" id="lbDoc"></div>
+      <div class="frow"><span class="flabel">状態</span>
+        <div class="seg" id="lbStatus">
+          <div class="seg-i on" data-st="ordered">📋 依頼</div>
+          <div class="seg-i" data-st="collected">💉 採取</div>
+          <div class="seg-i" data-st="awaiting">⏳ 結果待</div>
+          <div class="seg-i" data-st="reported">✅ 結果</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;padding:9px;background:var(--bg-soft);border-radius:8px;border:1px solid var(--border-soft)">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:5px">結果・所見</div>
+        <textarea class="ftxt" id="lbResult" placeholder="WBC↑ 18500 (4000-15000)&#10;CRP↑ 7.2 mg/dL&#10;..."></textarea>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:4px">↑/↓ を含めると一覧で異常マーク表示</div>
+      </div>
+      <div class="frow" style="margin-top:8px"><span class="flabel">備考</span>
+        <input class="fin" id="lbNote"></div>
+      <div style="margin-top:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:5px">📷 結果写真</div>
+        <input type="file" id="lbPhotoInput" accept="image/*" multiple onchange="addLabPhotos(this.files)" style="font-size:12px">
+        <div class="lab-photos" id="lbPhotos"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" onclick="deleteLab()" id="lbDelBtn" style="margin-right:auto;display:none">🗑 削除</button>
+      <button class="btn btn-sec" onclick="closeModal('labModal')">キャンセル</button>
+      <button class="btn" onclick="saveLab()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOD PICKER MODAL -->
+<div class="modal-bg" id="foodModal">
+  <div class="modal">
+    <div class="modal-hdr" id="fpTitle">食事入力 <button class="modal-x" onclick="closeModal('foodModal')">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:7px;font-weight:600">フードを選択</div>
+      <div class="food-grid" id="fpFoods"></div>
+      <div class="frow"><span class="flabel">量</span>
+        <input class="fin fin-md" type="number" id="fpGram" placeholder="50"><span class="unit">g</span>
+        <button class="btn btn-sec btn-sm" onclick="document.getElementById('fpGram').value=''">クリア</button>
+      </div>
+      <div id="fpCustom" style="display:none;margin-top:8px">
+        <div class="frow"><span class="flabel">カスタム名</span><input class="fin" id="fpCustomName" placeholder="フード名"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal('foodModal')">キャンセル</button>
+      <button class="btn" onclick="saveFood()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE MODAL -->
+<div class="modal-bg" id="schedModal">
+  <div class="modal">
+    <div class="modal-hdr" id="schedTitle">予定を作成 <button class="modal-x" onclick="closeModal('schedModal')">×</button></div>
+    <div class="modal-body">
+      <div id="schedMedFields" style="display:none">
+        <div class="frow"><span class="flabel">薬剤名</span><input class="fin" id="schedMedName" placeholder="セファゾリン 等"></div>
+        <div class="frow"><span class="flabel">用量・経路</span><input class="fin" id="schedMedDose" placeholder="100mg IV 等"></div>
+      </div>
+      <div class="frow"><span class="flabel">開始日</span><input class="fin fin-md" type="date" id="schedDate"></div>
+      <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">日数</span>
+        <div class="sched-days" id="schedDays">
+          <button data-d="1" class="on">1日</button>
+          <button data-d="2">2日</button>
+          <button data-d="3">3日</button>
+          <button data-d="5">5日</button>
+          <button data-d="7">7日</button>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:5px">プリセット</div>
+        <div class="sched-preset">
+          <button onclick="schedPreset('q4h')">4時間毎 (6/10/14/18/22/2)</button>
+          <button onclick="schedPreset('q6h')">6時間毎 (6/12/18/24)</button>
+          <button onclick="schedPreset('q8h')">8時間毎 (6/14/22)</button>
+          <button onclick="schedPreset('q12h')">12時間毎 (8/20)</button>
+          <button onclick="schedPreset('q24h')">1日1回 (8)</button>
+          <button onclick="schedPreset('clear')">クリア</button>
+        </div>
+      </div>
+      <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">時刻</span>
+        <div class="sched-grid" id="schedHours"></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:10px;background:var(--bg-soft);padding:8px;border-radius:6px" id="schedPreview"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal('schedModal')">キャンセル</button>
+      <button class="btn" onclick="commitSchedule()">📅 予定を作成</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK MED SCHEDULER -->
+<div class="modal-bg" id="bulkMedModal">
+  <div class="modal">
+    <div class="modal-hdr">💊 薬剤一括予定 <button class="modal-x" onclick="closeModal('bulkMedModal')">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">投与する薬剤を全て入力 → 共通の時刻を選択 → 一括作成</div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--text2);margin-bottom:6px">💊 投与する薬剤リスト</div>
+      <div class="med-list-head">
+        <span>薬剤名</span>
+        <span style="text-align:center">量</span>
+        <span style="text-align:center">単位</span>
+        <span style="text-align:center">経路</span>
+        <span></span>
+      </div>
+      <div id="bmList"></div>
+      <button class="btn btn-sec btn-sm" onclick="addBulkMedRow()" style="width:100%;margin:6px 0 14px">＋ 薬剤を追加</button>
+
+      <div class="frow"><span class="flabel">開始日</span><input class="fin fin-md" type="date" id="bmDate"></div>
+      <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">日数</span>
+        <div class="sched-days" id="bmDays">
+          <button data-d="1" class="on">1日</button>
+          <button data-d="2">2日</button>
+          <button data-d="3">3日</button>
+          <button data-d="5">5日</button>
+          <button data-d="7">7日</button>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <div style="font-size:12.5px;font-weight:700;color:var(--text2);margin-bottom:5px">投薬間隔プリセット</div>
+        <div class="sched-preset">
+          <button onclick="bmPreset('q4h')">4時間毎</button>
+          <button onclick="bmPreset('q6h')">6時間毎</button>
+          <button onclick="bmPreset('q8h')">8時間毎</button>
+          <button onclick="bmPreset('q12h')">12時間毎</button>
+          <button onclick="bmPreset('q24h')">1日1回</button>
+          <button onclick="bmPreset('clear')">クリア</button>
+        </div>
+      </div>
+      <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">投与時刻</span>
+        <div class="sched-grid" id="bmHours"></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:10px;background:var(--bg-soft);padding:8px;border-radius:6px" id="bmPreview"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal('bulkMedModal')">キャンセル</button>
+      <button class="btn" onclick="commitBulkMedSchedule()">💊 一括作成</button>
+    </div>
+  </div>
+</div>
+
+<!-- VISIT MODAL -->
+<div class="modal-bg" id="visitModal">
+  <div class="modal">
+    <div class="modal-hdr" id="vmTitle">面会記録 <button class="modal-x" onclick="closeModal('visitModal')">×</button></div>
+    <div class="modal-body">
+      <div class="frow"><span class="flabel">日時</span>
+        <input class="fin fin-md" type="datetime-local" id="vmAt">
+        <button class="btn-now" onclick="document.getElementById('vmAt').value=nowLocalISO()">今</button>
+      </div>
+      <div class="frow"><span class="flabel">面会者</span>
+        <input class="fin" id="vmWho" placeholder="例: ご主人、奥様、お嬢様 等"></div>
+      <div class="frow"><span class="flabel">対応者</span>
+        <input class="fin" id="vmStaff" placeholder="担当スタッフ"></div>
+      <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">飼い主の様子</span>
+        <div class="mood-buttons" id="vmMood" style="flex:1">
+          <button data-m="relief">😊 安心</button>
+          <button data-m="neutral">😐 普通</button>
+          <button data-m="anxiety">😟 不安</button>
+          <button data-m="distrust">🤨 不信感</button>
+          <button data-m="anger">😠 怒り</button>
+          <button data-m="sad">😢 悲嘆</button>
+        </div>
+      </div>
+      <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">面会内容・伝達事項</span>
+        <textarea class="ftxt ftxt-auto" id="vmText" oninput="autoExpand(this)" placeholder="話した内容、伝えた事項、質問対応等"></textarea></div>
+      <div class="frow"><span class="flabel">頂き物</span>
+        <input class="fin" id="vmGift" placeholder="例: お菓子、お花、ジュース等"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" onclick="deleteVisit()" id="vmDelBtn" style="margin-right:auto;display:none">🗑 削除</button>
+      <button class="btn btn-sec" onclick="closeModal('visitModal')">キャンセル</button>
+      <button class="btn" onclick="saveVisit()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO VIEWER -->
+<div class="photo-viewer hidden" id="photoViewer" onclick="closePhotoViewer()">
+  <img id="photoViewerImg" src="">
+</div>
+
+<!-- COLOR LEGEND MODAL -->
+<div class="modal-bg" id="legendModal">
+  <div class="modal">
+    <div class="modal-hdr">🎨 色マーカー凡例 <button class="modal-x" onclick="closeModal('legendModal')">×</button></div>
+    <div class="modal-body" id="legendBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal('legendModal')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-bg" id="importModal">
+  <div class="modal">
+    <div class="modal-hdr">JSONインポート <button class="modal-x" onclick="closeModal('importModal')">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px">エクスポート済JSONを貼り付け。既存データは保持され患者単位で追加されます。</div>
+      <textarea class="ftxt" id="importText" style="min-height:200px"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal('importModal')">キャンセル</button>
+      <button class="btn" onclick="doImport()">インポート</button>
+    </div>
+  </div>
+</div>
+
+<!-- DISCHARGE SUMMARY MODAL (Pass 5) -->
+<div class="modal-bg" id="dsModal">
+  <div class="modal">
+    <div class="modal-hdr">退院サマリ <button class="modal-x" onclick="closeModal('dsModal')">×</button></div>
+    <div class="modal-body">
+      <textarea class="ftxt" id="dsText" style="min-height:340px;font-size:12.5px"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal('dsModal')">閉じる</button>
+      <button class="btn" onclick="copyDischarge()">📋 コピー</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const STORAGE_KEY = 'hosprec_v1';
+const FIELDS_DEF = [
+  {k:'temp', label:'体温', unit:'℃', def:true,  sys:'temp', short:'T'},
+  {k:'hr',   label:'心拍', unit:'回/分', def:true, sys:'circ', short:'HR'},
+  {k:'rr',   label:'呼吸', unit:'回/分', def:true, sys:'resp', short:'RR'},
+  {k:'spo2', label:'SpO₂', unit:'%',  def:true,  sys:'resp', short:'SpO₂'},
+  {k:'bp',   label:'血圧', unit:'mmHg', def:false,sys:'circ', short:'BP'},
+  {k:'crt',  label:'CRT',  unit:'秒', def:false, sys:'circ', short:'CRT'},
+  {k:'gcs',  label:'意識', unit:'',  def:false,  sys:'obs',  short:'GCS'},
+];
+const STATUS_DEF = [
+  {k:'npo',  label:'NPO（絶食）',  cls:'warn'},
+  {k:'npw',  label:'絶水',         cls:'danger'},
+  {k:'o2',   label:'O₂吸入中',     cls:''},
+  {k:'iv',   label:'IV留置',       cls:''},
+  {k:'iso',  label:'隔離',         cls:'danger'},
+  {k:'mon',  label:'監視',         cls:''},
+];
+
+let state = loadState();
+let currentId = null;
+let flowRangeH = 24;
+let editingLabId = null;
+
+/* ============================================================
+   UNDO SYSTEM (Pass-fix #4: snapshot-based with toast link + ⌘Z)
+   ============================================================ */
+let undoStack = [];
+const UNDO_MAX = 30;
+function pushUndo(label){
+  if (!currentId) return;
+  try{
+    const snap = JSON.stringify(state.patients[currentId]);
+    undoStack.push({ pid:currentId, snap, label, at:Date.now() });
+    if (undoStack.length > UNDO_MAX) undoStack.shift();
+    refreshUndoBtn();
+  }catch(e){ console.warn('pushUndo',e) }
+}
+function undo(){
+  const u = undoStack.pop();
+  if (!u){ toast('元に戻せません','err'); return; }
+  if (!state.patients[u.pid]){ toast('元の患者が見つかりません','err'); return; }
+  state.patients[u.pid] = JSON.parse(u.snap);
+  saveState();
+  refreshUndoBtn();
+  if (currentId === u.pid){
+    loadIntoForm();
+    const active = document.querySelector('.tab.on')?.dataset.tab;
+    if (active) switchTab(active);
+  } else {
+    renderList();
+  }
+  toast(`戻しました: ${u.label}`,'ok');
+}
+function toastUndo(msg){
+  const t = document.getElementById('toast');
+  t.innerHTML = `${escapeHtml(msg)} <span class="undo-link" onclick="undo()">↶ 元に戻す</span>`;
+  t.className = 'toast ok on';
+  clearTimeout(window._toastT);
+  window._toastT = setTimeout(()=>t.classList.remove('on'), 5000);
+}
+document.addEventListener('keydown', e=>{
+  if ((e.metaKey||e.ctrlKey) && (e.key==='z'||e.key==='Z') && !e.shiftKey){
+    if (currentId){ e.preventDefault(); undo(); }
+  }
+});
+
+function loadState(){
+  try{ const raw = localStorage.getItem(STORAGE_KEY); if (raw) return JSON.parse(raw) }catch(e){}
+  return { patients:{}, archived:{}, settings:{ notif:false } };
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)) }
+function uid(p='id'){ return p+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6) }
+function toast(msg, type=''){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast '+type+' on';
+  clearTimeout(window._toastT); window._toastT=setTimeout(()=>t.classList.remove('on'),2200) }
+function fmtDT(s){ if(!s) return ''; const d=new Date(s); if(isNaN(d)) return s;
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` }
+function fmtD(s){ if(!s) return ''; const d=new Date(s); if(isNaN(d)) return s; return `${d.getMonth()+1}/${d.getDate()}` }
+function nowLocalISO(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16) }
+function todayISO(){ return new Date().toISOString().slice(0,10) }
+function num(v){ const n=parseFloat(v); return isNaN(n)?null:n }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+/* ============================================================
+   PATIENT LIST (Pass 1 + 3: vital pills + status accents)
+   ============================================================ */
+function renderList(){
+  const list = document.getElementById('patientList');
+  const ids = Object.keys(state.patients);
+  if (!ids.length){
+    list.innerHTML = `<div class="empty">
+      <div class="empty-icon">🐶🐱</div>
+      <div class="empty-text">入院中の患者はいません</div>
+      <div class="empty-sub">右上の「＋ 新規」から登録してください</div></div>`;
+    return;
+  }
+  ids.sort((a,b)=>(state.patients[b].admittedAt||'').localeCompare(state.patients[a].admittedAt||''));
+  list.innerHTML = ids.map(id=>{
+    const p = state.patients[id];
+    const days = p.admittedAt ? Math.floor((Date.now()-new Date(p.admittedAt).getTime())/86400000)+1 : '?';
+    const last = lastVital(p);
+    const al = last ? checkAlertsFor(p, last) : [];
+    const overdue = (p.meds||[]).filter(m=>!m.done && m.at && new Date(m.at) < new Date()).length;
+    const alertCnt = al.length + overdue;
+    const cls = alertCnt ? (al.length?'alert':'warn') : '';
+    // vital pills
+    let pills = '';
+    if (last){
+      const out = outOfRangeFlags(p, last);
+      if (last.temp!=null) pills += `<span class="vpill ${out.temp?'abn':''}"><span class="lbl">T</span>${last.temp}</span>`;
+      if (last.hr!=null)   pills += `<span class="vpill ${out.hr?'abn':''}"><span class="lbl">HR</span>${last.hr}</span>`;
+      if (last.rr!=null)   pills += `<span class="vpill ${out.rr?'abn':''}"><span class="lbl">RR</span>${last.rr}</span>`;
+      if (last.spo2!=null) pills += `<span class="vpill ${out.spo2?'abn':''}"><span class="lbl">SpO₂</span>${last.spo2}</span>`;
+      pills += `<span class="vpill" style="background:var(--blue-soft);color:var(--navy);border-color:transparent"><span class="lbl">最終</span>${fmtDT(last.at)}</span>`;
+    }
+    // status badges in card
+    const st = p.status||{};
+    let stbadge = '';
+    STATUS_DEF.forEach(s=>{ if (st[s.k]) stbadge += `<span class="day-pill" style="background:#fef0e8;color:#9a4d10">${s.label}</span>` });
+
+    return `<div class="case-card ${cls}" onclick="openPatient('${id}')">
+      <div class="case-icon">${(p.species||'?').slice(0,1)}</div>
+      <div class="case-info">
+        <div class="case-name">${escapeHtml(p.name||'(無名)')} <span class="pid">${escapeHtml(p.patientId||'')}</span>
+          ${alertCnt?`<span class="alert-badge">⚠ ${alertCnt}</span>`:''}
+        </div>
+        <div class="case-meta">
+          ${escapeHtml(p.species||'')}${p.breed?' / '+escapeHtml(p.breed):''} · ${escapeHtml(p.age||'')} ${escapeHtml(p.sex||'')}
+          <span class="day-pill">入院${days}日目</span>
+          <span class="day-pill" style="background:#eaf1fb;color:var(--navy)">${p.bodyWeight||'?'}kg</span>
+          ${stbadge}
+        </div>
+        ${pills?`<div class="case-vitals">${pills}</div>`:''}
+      </div>
+      <button class="case-del" onclick="event.stopPropagation();confirmDelete('${id}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function newPatient(){
+  const id = uid('p');
+  state.patients[id] = {
+    id, patientId:'', name:'', species:'犬', breed:'', age:'', sex:'',
+    bodyWeight:null, admittedAt: todayISO(), doctor:'', diagnosis:'',
+    range:{ tempL:38.0, tempH:39.2, hrL:60, hrH:160, rrL:15, rrH:40, spoL:95, spoH:100 },
+    enabledFields: FIELDS_DEF.filter(f=>f.def).map(f=>f.k),
+    status: {},
+    vitals:[], inout:[], fluids:[], meds:[], notes:[], weights:[], labs:[]
+  };
+  saveState(); openPatient(id);
+}
+function confirmDelete(id){
+  const p = state.patients[id]; if (!p) return;
+  if (confirm(`「${p.name||'(無名)'}」を削除しますか？\n記録もすべて消去されます。`)){
+    delete state.patients[id]; saveState(); renderList(); toast('削除しました');
+  }
+}
+
+/* ============================================================
+   DETAIL OPEN / CLOSE
+   ============================================================ */
+function openPatient(id){
+  console.log('[openPatient]', id, 'exists:', !!state.patients[id]);
+  if (!state.patients[id]){ alert('患者データが見つかりません: '+id); return; }
+  const p = state.patients[id];
+  // Defensive normalization for legacy data
+  p.status = p.status || {};
+  p.labs = p.labs || [];
+  p.vitals = p.vitals || [];
+  p.inout = p.inout || [];
+  p.fluids = p.fluids || [];
+  p.meds = p.meds || [];
+  p.notes = p.notes || [];
+  p.weights = p.weights || [];
+  p.visits = p.visits || [];
+  p.diseases = p.diseases || [];
+  p.temperament = p.temperament || '';
+  p.ownerType = p.ownerType || '';
+  p.range = p.range || {};
+  p.enabledFields = p.enabledFields || ['temp','hr','rr','spo2'];
+  currentId = id;
+  undoStack = [];
+  refreshUndoBtn();
+  // Transition first so user sees the screen change even if rendering errors
+  document.getElementById('screenList').classList.add('hidden');
+  document.getElementById('screenDetail').classList.remove('hidden');
+  document.getElementById('fab').classList.remove('hidden');
+  try {
+    loadIntoForm();
+    switchTab('handover');
+  } catch(e){
+    console.error('openPatient render error:', e);
+    alert('描画エラー: '+e.message+'\n\n詳細はConsoleを確認してください');
+  }
+}
+function showList(){
+  saveCurrent(false);
+  document.getElementById('screenDetail').classList.add('hidden');
+  document.getElementById('screenList').classList.remove('hidden');
+  document.getElementById('fab').classList.add('hidden');
+  renderList();
+}
+function refreshUndoBtn(){
+  const b = document.getElementById('btnUndo'); if (!b) return;
+  b.style.opacity = undoStack.length ? '1' : '.4';
+  b.title = undoStack.length ? `元に戻す: ${undoStack[undoStack.length-1].label} (⌘Z)` : '元に戻す履歴なし';
+}
+
+function loadIntoForm(){
+  const p = state.patients[currentId];
+  p.diseases = p.diseases || [];
+  p.temperament = p.temperament || '';
+  const condChip = p.condition ? `<span class="condition-chip">${escapeHtml(p.condition)}</span>` : '';
+  document.getElementById('dtTitle').innerHTML = `${escapeHtml(p.name||'(無名)')}${condChip}<span class="sub">${escapeHtml(p.species||'')}${p.breed?' '+escapeHtml(p.breed):''} ${escapeHtml(p.sex||'')}</span>`;
+  document.getElementById('dtWeight').textContent = (p.bodyWeight||'—') + ' kg';
+  document.getElementById('iPid').value = p.patientId||'';
+  document.getElementById('iName').value = p.name||'';
+  document.getElementById('iBreed').value = p.breed||'';
+  document.getElementById('iBirthday').value = p.birthday||'';
+  document.getElementById('iWeight').value = p.bodyWeight??'';
+  document.getElementById('iAdmit').value = p.admittedAt||'';
+  document.getElementById('iDoc').value = p.doctor||'';
+  document.getElementById('iCondition').value = p.condition||'';
+  document.getElementById('iDx').value = p.diagnosis||'';
+  document.getElementById('iGoal').value = p.dischargeGoal||'';
+  // species/sex button group
+  document.querySelectorAll('#iSpeciesBtns button').forEach(b=>b.classList.toggle('on', b.dataset.v===p.species));
+  document.querySelectorAll('#iSexBtns button').forEach(b=>b.classList.toggle('on', b.dataset.v===p.sex));
+  // diseases (multi-select)
+  document.querySelectorAll('#iDiseaseBtns button').forEach(b=>b.classList.toggle('on', p.diseases.includes(b.dataset.v)));
+  // temperament (single-select)
+  document.querySelectorAll('#iTempBtns button').forEach(b=>b.classList.toggle('on', b.dataset.v===p.temperament));
+  // owner type (single-select)
+  document.querySelectorAll('#iOwnerBtns button').forEach(b=>b.classList.toggle('on', b.dataset.v===(p.ownerType||'')));
+  recalcAge();
+  setTimeout(()=>{ autoExpand(document.getElementById('iDx')); autoExpand(document.getElementById('iGoal')); }, 50);
+  const r = p.range||{};
+  ['tempL','tempH','hrL','hrH','rrL','rrH','spoL','spoH'].forEach(k=>{
+    const el = document.getElementById('r'+k[0].toUpperCase()+k.slice(1));
+    if (el) el.value = r[k]??'';
+  });
+  renderHeaderVitals();
+  renderStatusBadges();
+  renderHeaderMeta();
+  renderVitalsTable();
+  renderIoTable();
+  renderFluidTable();
+  renderMedTable();
+  renderNotes();
+  renderVisits();
+  renderFieldToggles();
+  renderLabs();
+  refreshNotifUI();
+  renderAlerts();
+  updateTabAlertDots();
+}
+
+function renderHeaderVitals(){
+  const p = state.patients[currentId];
+  const last = lastVital(p);
+  const c = document.getElementById('fhVitals');
+  if (!last){ c.innerHTML = `<div style="font-size:11px;opacity:.6;padding:3px 0">まだバイタル記録がありません</div>`; return }
+  const out = outOfRangeFlags(p, last);
+  let html = '';
+  const fields = p.enabledFields || ['temp','hr','rr','spo2'];
+  fields.forEach(k=>{
+    const f = FIELDS_DEF.find(x=>x.k===k); if (!f) return;
+    if (last[k]==null) return;
+    html += `<div class="fh-vp ${out[k]?'abn':''}"><span class="l">${f.short}</span><span class="v">${last[k]}</span></div>`;
+  });
+  html += `<div class="fh-vp" style="background:rgba(127,198,244,.18)"><span class="l">最終</span><span class="v" style="font-size:11px">${fmtDT(last.at)}</span></div>`;
+  c.innerHTML = html;
+}
+
+/* Color-only markers - decorative for staff-only meta */
+const TEMP_COLORS = { calm:'#95a5a6',fear:'#5d80b3',angry:'#c0392b',friendly:'#27ae60' };
+const OWNER_COLORS = {
+  normal:'#27ae60',         // 普通 = 緑
+  cooperative:'#ff69b4',    // 協力的 = ピンク
+  claim:'#c0392b',          // クレーマー = 赤
+  aggressive:'#5e0000',     // 攻撃的 = 暗赤
+  over:'#d68910',           // 過保護 = 橙
+  anxious:'#5d80b3',        // 心配性 = 青
+  low:'#f1c40f',            // 理解度低い = 黄
+};
+const MOOD_COLORS = {
+  relief:'#27ae60',    // 安心 = 緑
+  neutral:'#7a8aa5',   // 普通 = 灰
+  anxiety:'#f39c12',   // 不安 = 明橙
+  distrust:'#8e44ad',  // 不信感 = 紫
+  anger:'#c0392b',     // 怒り = 濃赤
+  sad:'#2980b9',       // 悲嘆 = 青
+};
+const DISEASE_COLORS = {
+  'FIV':'#7b4f9e','FeLV':'#e67e22','パルボ':'#5e0000','SFTS':'#c0392b',
+  'レプトスピラ':'#c0392b','ジアルジア':'#d68910','疥癬':'#a06845',
+  'ノミ・マダニ':'#16a085','MRSA':'#d63384'
+};
+const ZOONOTIC = ['SFTS','レプトスピラ','疥癬','MRSA','ノミ・マダニ'];
+
+function colorBox(color, opts={}){
+  if (!color) return `<span class="marker-box empty" title="${opts.title||''}"></span>`;
+  const cls = ['marker-box', opts.zoonotic?'zoonotic':''].filter(Boolean).join(' ');
+  return `<span class="${cls}" style="background:${color}" title="${opts.title||''}"></span>`;
+}
+
+function hexToRgba(hex, alpha){
+  const m = String(hex).match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (!m) return hex;
+  return `rgba(${parseInt(m[1],16)},${parseInt(m[2],16)},${parseInt(m[3],16)},${alpha})`;
+}
+function renderTabColors(){
+  const p = state.patients[currentId];
+  const EMPTY_COLOR = '#cbd5e0';
+  const visits = p ? (p.visits||[]).filter(v=>v.mood).sort((a,b)=>(b.at||'').localeCompare(a.at||'')) : [];
+  const tempColor = p?.temperament ? TEMP_COLORS[p.temperament] : '';
+  const ownerColor = p?.ownerType ? OWNER_COLORS[p.ownerType] : '';
+  const moodColor = visits.length ? MOOD_COLORS[visits[0].mood] : '';
+  const map = { 'info':tempColor, 'visits':moodColor, 'settings':ownerColor };
+  Object.entries(map).forEach(([name,color])=>{
+    const t = document.querySelector(`.tab[data-tab="${name}"]`);
+    if (!t) return;
+    const c = color || EMPTY_COLOR;
+    t.style.borderBottomColor = c;
+    // Inner glow + subtle bg tint for colored tabs
+    if (color){
+      t.style.backgroundColor = hexToRgba(c, 0.25);
+      t.style.boxShadow = `inset 0 -5px 12px -4px ${hexToRgba(c, 0.85)}, inset 0 0 0 1px ${hexToRgba(c, 0.35)}`;
+    } else {
+      t.style.backgroundColor = '';
+      t.style.boxShadow = '';
+    }
+  });
+}
+
+function renderHeaderMeta(){
+  const p = state.patients[currentId];
+  const c = document.getElementById('fhMeta');
+  if (!c) return;
+  // Tab colors encode 動物性格/飼い主/面会気分 - no need for marker boxes anymore
+  renderTabColors();
+  // Show only infectious disease pills here (medical info, OK to show)
+  let html = '';
+  (p.diseases||[]).forEach(d=>{ html += `<span class="disease-pill">${escapeHtml(d)}</span>` });
+  c.innerHTML = html;
+  c.style.display = html ? 'flex' : 'none';
+}
+
+function openLegend(){
+  const body = document.getElementById('legendBody');
+  const sec = (title)=>`<div class="legend-section">${title}</div>`;
+  const row = (color, label, sub, zoonotic)=>{
+    const box = colorBox(color, {zoonotic});
+    return `<div class="legend-row">${box}<div class="lh">${label}${sub?`<small>${sub}</small>`:''}</div></div>`;
+  };
+  let html = '';
+  html += sec('① 動物の性格');
+  html += row(TEMP_COLORS.calm,'普通','灰');
+  html += row(TEMP_COLORS.fear,'怖がり','青');
+  html += row(TEMP_COLORS.angry,'怒りやすい','赤');
+  html += row(TEMP_COLORS.friendly,'人懐っこい','緑');
+  html += row('','(未設定)','点線枠');
+
+  html += sec('飼い主の対応注意');
+  html += row(OWNER_COLORS.normal,'普通','緑');
+  html += row(OWNER_COLORS.cooperative,'協力的','ピンク');
+  html += row(OWNER_COLORS.claim,'クレーマー気質','明赤');
+  html += row(OWNER_COLORS.aggressive,'攻撃的','暗赤');
+  html += row(OWNER_COLORS.over,'過保護','橙');
+  html += row(OWNER_COLORS.anxious,'心配性','青');
+  html += row(OWNER_COLORS.low,'理解度低い','黄');
+
+  html += sec('③ 最新面会の気分');
+  html += row(MOOD_COLORS.relief,'安心','緑');
+  html += row(MOOD_COLORS.neutral,'普通','灰');
+  html += row(MOOD_COLORS.anxiety,'不安','明橙');
+  html += row(MOOD_COLORS.distrust,'不信感','紫');
+  html += row(MOOD_COLORS.anger,'怒り','濃赤');
+  html += row(MOOD_COLORS.sad,'悲嘆','青');
+
+  html += `<div style="background:var(--bg-soft);padding:9px;border-radius:6px;margin-top:14px;font-size:11.5px;color:var(--text2);line-height:1.6">
+    💡 マーカーは<b>常に3つ固定位置</b>で表示:<br>
+    　① 動物の性格 → ② 飼い主 → ③ 最新面会気分<br>
+    💡 未設定の枠は<b>点線</b>で表示（位置がずれない）<br>
+    💡 動物の性格「普通」=灰色／飼い主「普通」=緑（"未設定"とは区別）<br>
+    💡 色のみで文字なし。飼い主に見られても意味は伝わりません<br>
+    💡 感染症（☣バッジ）は医療情報なので文字で表示されます
+  </div>`;
+
+  body.innerHTML = html;
+  document.getElementById('legendModal').classList.add('on');
+}
+
+function renderStatusBadges(){
+  const p = state.patients[currentId];
+  p.status = p.status || {};
+  const c = document.getElementById('fhStatus');
+  let html = STATUS_DEF.map(s=>{
+    const on = !!p.status[s.k];
+    return `<span class="status-badge ${on?'on':''} ${on?s.cls:''}" onclick="toggleStatus('${s.k}')">${s.label}</span>`;
+  }).join('');
+  // 頂き物インジケーター（auto-derived from visits）
+  const gifts = (p.visits||[]).filter(v=>v.gift && v.gift.trim());
+  if (gifts.length){
+    const recent = gifts.sort((a,b)=>(b.at||'').localeCompare(a.at||''))[0];
+    const tip = gifts.slice(0,3).map(g=>`${fmtD(g.at)}: ${g.gift}`).join('\n');
+    html += `<span class="status-badge on" style="background:#fef3c7;color:#92400e;border-color:#fbbf24;cursor:default" title="頂き物あり&#10;${escapeHtml(tip)}">🎁 ${gifts.length}</span>`;
+  }
+  c.innerHTML = html;
+}
+function toggleStatus(k){
+  pushUndo('ステータス切替');
+  const p = state.patients[currentId];
+  p.status = p.status || {};
+  p.status[k] = !p.status[k];
+  saveState(); renderStatusBadges(); renderList();
+}
+
+function readFormToPatient(){
+  const p = state.patients[currentId]; if (!p) return;
+  p.patientId = document.getElementById('iPid').value.trim();
+  p.name = document.getElementById('iName').value.trim();
+  p.breed = document.getElementById('iBreed').value.trim();
+  p.birthday = document.getElementById('iBirthday').value || '';
+  p.age = computeAge(p.birthday);
+  // species/sex from button group
+  const sp = document.querySelector('#iSpeciesBtns button.on');
+  if (sp) p.species = sp.dataset.v;
+  const sx = document.querySelector('#iSexBtns button.on');
+  if (sx) p.sex = sx.dataset.v;
+  const w = num(document.getElementById('iWeight').value);
+  if (w!=null && w !== p.bodyWeight){
+    p.bodyWeight = w; p.weights = p.weights||[]; p.weights.push({ at: nowLocalISO(), w });
+  } else if (w!=null) p.bodyWeight = w;
+  p.admittedAt = document.getElementById('iAdmit').value;
+  p.doctor = document.getElementById('iDoc').value.trim();
+  p.condition = document.getElementById('iCondition').value.trim();
+  p.diagnosis = document.getElementById('iDx').value.trim();
+  p.dischargeGoal = document.getElementById('iGoal').value.trim();
+  // diseases (multi-select), temperament/owner (single-select)
+  p.diseases = [...document.querySelectorAll('#iDiseaseBtns button.on')].map(b=>b.dataset.v);
+  const tmOn = document.querySelector('#iTempBtns button.on');
+  p.temperament = tmOn ? tmOn.dataset.v : '';
+  const owOn = document.querySelector('#iOwnerBtns button.on');
+  p.ownerType = owOn ? owOn.dataset.v : '';
+  p.range = p.range||{};
+  ['tempL','tempH','hrL','hrH','rrL','rrH','spoL','spoH'].forEach(k=>{
+    const el = document.getElementById('r'+k[0].toUpperCase()+k.slice(1));
+    p.range[k] = el && el.value!=='' ? num(el.value) : null;
+  });
+  const condChip2 = p.condition ? `<span class="condition-chip">${escapeHtml(p.condition)}</span>` : '';
+  document.getElementById('dtTitle').innerHTML = `${escapeHtml(p.name||'(無名)')}${condChip2}<span class="sub">${escapeHtml(p.species||'')}${p.breed?' '+escapeHtml(p.breed):''}</span>`;
+  document.getElementById('dtWeight').textContent = (p.bodyWeight||'—') + ' kg';
+}
+
+function computeAge(birthday){
+  if (!birthday) return '';
+  const b = new Date(birthday);
+  if (isNaN(b)) return '';
+  const now = new Date();
+  let years = now.getFullYear() - b.getFullYear();
+  let months = now.getMonth() - b.getMonth();
+  let days = now.getDate() - b.getDate();
+  if (days<0){ months--; days += 30 }
+  if (months<0){ years--; months += 12 }
+  if (years>0) return months>0 ? `${years}歳${months}ヶ月` : `${years}歳`;
+  if (months>0) return `${months}ヶ月`;
+  return `${days}日`;
+}
+function recalcAge(){
+  const b = document.getElementById('iBirthday').value;
+  const age = computeAge(b);
+  document.getElementById('iAgeDisplay').textContent = age || '—';
+}
+function autoExpand(el){ if (!el) return; el.style.height='auto'; el.style.height = el.scrollHeight + 'px' }
+
+// Species/sex/disease/temperament button group click handlers
+document.addEventListener('click', e=>{
+  const sp = e.target.closest('#iSpeciesBtns button');
+  if (sp){
+    document.querySelectorAll('#iSpeciesBtns button').forEach(b=>b.classList.toggle('on', b===sp));
+    if (currentId){ pushUndo('動物種変更'); saveCurrent(false) }
+    return;
+  }
+  const sx = e.target.closest('#iSexBtns button');
+  if (sx){
+    document.querySelectorAll('#iSexBtns button').forEach(b=>b.classList.toggle('on', b===sx));
+    if (currentId){ pushUndo('性別変更'); saveCurrent(false) }
+    return;
+  }
+  const dz = e.target.closest('#iDiseaseBtns button');
+  if (dz){
+    dz.classList.toggle('on');
+    if (currentId){ pushUndo('感染症変更'); saveCurrent(false); renderHeaderMeta() }
+    return;
+  }
+  const tm = e.target.closest('#iTempBtns button');
+  if (tm){
+    const wasOn = tm.classList.contains('on');
+    document.querySelectorAll('#iTempBtns button').forEach(b=>b.classList.remove('on'));
+    if (!wasOn) tm.classList.add('on');
+    if (currentId){ pushUndo('性格変更'); saveCurrent(false); renderHeaderMeta() }
+    return;
+  }
+  const ow = e.target.closest('#iOwnerBtns button');
+  if (ow){
+    const wasOn = ow.classList.contains('on');
+    document.querySelectorAll('#iOwnerBtns button').forEach(b=>b.classList.remove('on'));
+    if (!wasOn) ow.classList.add('on');
+    if (currentId){ pushUndo('飼い主タイプ変更'); saveCurrent(false); renderHeaderMeta() }
+    return;
+  }
+});
+function saveCurrent(showMsg){
+  if (!currentId) return;
+  readFormToPatient(); saveState(); renderAlerts(); updateTabAlertDots();
+  if (showMsg) toast('保存しました','ok');
+}
+
+/* ============================================================
+   TAB SWITCH
+   ============================================================ */
+document.getElementById('tabBar').addEventListener('click', (e)=>{
+  const t = e.target.closest('.tab'); if (!t) return; switchTab(t.dataset.tab);
+});
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===name));
+  const map = {handover:'pHandover',info:'pInfo',vitals:'pVitals',inout:'pInout',tx:'pTx',labs:'pLabs',visits:'pVisits',notes:'pNotes',chart:'pChart',settings:'pSettings'};
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  const targetPanel = document.getElementById(map[name]);
+  if (targetPanel) targetPanel.classList.add('on');
+  saveCurrent(false);
+  if (name==='handover'){ renderHandover() }
+  if (name==='chart'){ drawCharts() }
+  if (name==='vitals'){ renderVitalsGrid(); renderAlerts() }
+  if (name==='inout'){ renderIoGrid() }
+  if (name==='tx'){ renderTxGrid() }
+  if (name==='labs'){ renderLabs() }
+  if (name==='visits'){ renderVisits() }
+}
+function updateTabAlertDots(){
+  const p = state.patients[currentId]; if (!p) return;
+  const last = lastVital(p);
+  const al = last ? checkAlertsFor(p, last) : [];
+  const overdue = (p.meds||[]).filter(m=>!m.done && m.at && new Date(m.at) < new Date());
+  const vTab = document.querySelector('.tab[data-tab="vitals"]');
+  const txTab = document.querySelector('.tab[data-tab="tx"]');
+  const hoTab = document.querySelector('.tab[data-tab="handover"]');
+  if (vTab) vTab.classList.toggle('alert', al.length>0);
+  if (txTab) txTab.classList.toggle('alert', overdue.length>0);
+  if (hoTab) hoTab.classList.toggle('alert', al.length>0||overdue.length>0);
+}
+
+/* ============================================================
+   HORIZONTAL GRID: shared helpers
+   ============================================================ */
+// Collect unique sorted timestamps from given arrays (each array of objects with .at)
+function collectTimes(...arrays){
+  const set = new Set();
+  arrays.forEach(arr => (arr||[]).forEach(r=>{ if (r.at) set.add(r.at) }));
+  return [...set].sort();
+}
+function timeHeaderHTML(times, withAdd, withDel, delCallback){
+  const now = new Date();
+  let h = '<tr><th class="corner">時刻 →</th>';
+  times.forEach(t=>{
+    const d = new Date(t);
+    const isToday = sameDay(d, now);
+    const day = `${d.getMonth()+1}/${d.getDate()}`;
+    const wd = '日月火水木金土'[d.getDay()];
+    const hm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    h += `<th class="time ${isToday?'today':''}"><span class="day">${day}(${wd})</span>${hm}${withDel?`<button class="del-col" onclick="${delCallback}('${t}')" title="この時刻列を削除">×</button>`:''}</th>`;
+  });
+  if (withAdd) h += `<th class="time add-col" onclick="${withAdd}">＋</th>`;
+  h += '</tr>';
+  return h;
+}
+function findRecordAt(arr, t){ return (arr||[]).find(r=>r.at===t) }
+function ensureRecordAt(arr, t, defaults){
+  let r = arr.find(x=>x.at===t);
+  if (!r){ r = { at:t, ...defaults }; arr.push(r) }
+  return r;
+}
+// Set a field on a vitals record at given time (create if missing)
+function setVitalAt(t, k, v){
+  pushUndo('バイタル編集');
+  const p = state.patients[currentId]; p.vitals = p.vitals||[];
+  const r = ensureRecordAt(p.vitals, t, {temp:null,hr:null,rr:null,spo2:null,staff:''});
+  r[k] = (k==='at'||k==='staff'||k==='bp'||k==='gcs') ? v : (v===''?null:num(v));
+  saveState(); renderVitalsGrid(); renderAlerts(); renderHeaderVitals(); updateTabAlertDots();
+}
+function setIoAt(t, k, v){
+  pushUndo('In/Out編集');
+  const p = state.patients[currentId]; p.inout = p.inout||[];
+  const r = ensureRecordAt(p.inout, t, {foodType:'',foodPct:null,water:null,urine:null,urinePresent:'',stoolScore:null,stoolPresent:'',note:''});
+  if (['foodPct','water','urine'].includes(k)) r[k] = v===''?null:num(v);
+  else if (k==='stoolScore') r[k] = v===''?null:parseInt(v,10);
+  else r[k] = v;
+  saveState(); renderVitalsGrid(); renderIoGrid();
+}
+function toggleMaru(t, type){
+  // type: 'urinePresent' | 'stoolPresent'
+  const p = state.patients[currentId]; p.inout = p.inout||[];
+  const r = ensureRecordAt(p.inout, t, {foodType:'',foodPct:null,water:null,urine:null,urinePresent:'',stoolScore:null,stoolPresent:'',note:''});
+  pushUndo(type==='urinePresent'?'尿○/×':'便○/×');
+  const cur = r[type];
+  r[type] = cur==='○' ? '×' : cur==='×' ? '' : '○';
+  saveState(); renderVitalsGrid(); renderIoGrid(); renderHeaderVitals();
+}
+function setFoodPct(t, v){
+  pushUndo('食事%');
+  const p = state.patients[currentId]; p.inout = p.inout||[];
+  const r = ensureRecordAt(p.inout, t, {foodType:'',foodPct:null,water:null,urine:null,urinePresent:'',stoolScore:null,stoolPresent:'',note:''});
+  r.foodPct = (r.foodPct === v) ? null : v;
+  saveState(); renderVitalsGrid(); renderIoGrid();
+}
+// Add a new time column (defaults to now, prompts for time)
+function addTimeColumn(which){
+  const def = nowLocalISO();
+  const t = prompt('追加する時刻 (YYYY-MM-DDTHH:MM)', def);
+  if (!t) return;
+  pushUndo('時刻列追加');
+  const p = state.patients[currentId];
+  if (which==='vitals' || which==='io'){
+    p.vitals = p.vitals||[]; p.inout = p.inout||[];
+    if (!p.vitals.find(x=>x.at===t) && !p.inout.find(x=>x.at===t)){
+      p.vitals.push({ at:t, temp:null,hr:null,rr:null,spo2:null,staff:'' });
+    }
+  } else if (which==='tx'){
+    p.meds = p.meds||[]; p.fluids = p.fluids||[];
+    // Reserve via a placeholder fluid with rate=null
+    if (!p.fluids.find(x=>x.at===t) && !p.meds.find(x=>x.at===t)){
+      p.fluids.push({ at:t, product:'', rate:null, total:null, note:'__placeholder__' });
+    }
+  }
+  saveState();
+  if (which==='vitals') renderVitalsGrid();
+  if (which==='io') renderIoGrid();
+  if (which==='tx') renderTxGrid();
+}
+function delTimeColVitals(t){
+  if (!confirm(`${fmtDT(t)} の列を削除しますか？\n（バイタル・In/Out両方の同時刻データを削除）`)) return;
+  pushUndo('時刻列削除');
+  const p = state.patients[currentId];
+  p.vitals = (p.vitals||[]).filter(x=>x.at!==t);
+  p.inout = (p.inout||[]).filter(x=>x.at!==t);
+  saveState(); renderVitalsGrid(); renderIoGrid(); renderAlerts(); renderHeaderVitals();
+}
+function delTimeColIo(t){ delTimeColVitals(t) }
+function delTimeColTx(t){
+  if (!confirm(`${fmtDT(t)} の列を削除しますか？\n（薬剤・輸液の同時刻データを削除）`)) return;
+  pushUndo('時刻列削除');
+  const p = state.patients[currentId];
+  p.meds = (p.meds||[]).filter(x=>x.at!==t);
+  p.fluids = (p.fluids||[]).filter(x=>x.at!==t);
+  saveState(); renderTxGrid();
+}
+
+/* ============================================================
+   VITALS GRID (vertical=items, horizontal=time)
+   ============================================================ */
+function renderVitalsGrid(){
+  const p = state.patients[currentId]; if (!p) return;
+  const en = p.enabledFields || ['temp','hr','rr','spo2'];
+  const r = p.range||{};
+  p.vitals = p.vitals||[]; p.inout = p.inout||[];
+  const times = collectTimes(p.vitals, p.inout);
+  document.getElementById('vGridMeta').textContent = times.length ? `${times.length}列・最新 ${fmtDT(times[times.length-1])}` : '記録なし';
+  const tbl = document.getElementById('vGrid');
+  if (!times.length){
+    tbl.innerHTML = `<thead>${timeHeaderHTML([], "addTimeColumn('vitals')", false, '')}</thead><tbody><tr><td class="hgrid-empty" colspan="2">記録がありません。「＋ 時刻追加」から開始してください。</td></tr></tbody>`;
+    return;
+  }
+  const rmap = {temp:[r.tempL,r.tempH],hr:[r.hrL,r.hrH],rr:[r.rrL,r.rrH],spo2:[r.spoL,r.spoH]};
+  let html = `<thead>${timeHeaderHTML(times, "addTimeColumn('vitals')", true, 'delTimeColVitals')}</thead><tbody>`;
+  // Section: vitals
+  html += `<tr class="section"><th colspan="${times.length+2}">バイタル</th></tr>`;
+  en.forEach(k=>{
+    const f = FIELDS_DEF.find(x=>x.k===k); if (!f) return;
+    html += `<tr><th class="label">${f.label}<span class="lu">${f.unit}</span></th>`;
+    times.forEach(t=>{
+      const vrec = findRecordAt(p.vitals, t);
+      const val = vrec ? vrec[k] : null;
+      const rng = rmap[k];
+      const abn = rng && rng[0]!=null && val!=null && (val<rng[0]||val>rng[1]);
+      const ty = (k==='bp'||k==='gcs') ? 'text' : 'number';
+      html += `<td class="time ${abn?'abn':''}"><input type="${ty}" step="any" value="${val??''}" onchange="setVitalAt('${t}','${k}',this.value)"></td>`;
+    });
+    html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  });
+  // Staff row
+  html += `<tr><th class="label">担当</th>`;
+  times.forEach(t=>{
+    const vrec = findRecordAt(p.vitals, t);
+    html += `<td class="time"><input value="${escapeHtml(vrec?.staff||'')}" onchange="setVitalAt('${t}','staff',this.value)"></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+
+  // Section: In/Out
+  html += `<tr class="section"><th colspan="${times.length+2}">In / Out</th></tr>`;
+  // 食事% with VERTICAL quick buttons (tall row)
+  html += `<tr class="row-food"><th class="label">食事 %</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const v = io?.foodPct;
+    const pcts = [0,25,50,75,100];
+    html += `<td class="time" style="padding:0"><div class="pct-quick">`;
+    pcts.forEach(pc=>{ html += `<button class="${v===pc?'on':''}" onclick="setFoodPct('${t}',${pc})">${pc}</button>` });
+    html += `</div></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 食事内容 (popup picker)
+  html += `<tr><th class="label">食事内容</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const fn = io?.foodName || io?.foodType || '';
+    const fg = io?.foodGram;
+    const disp = fn ? `<span class="fn">${escapeHtml(fn)}</span>${fg!=null?`<span class="fg">${fg}g</span>`:''}` : '＋';
+    html += `<td class="time" style="padding:0"><button class="food-cell-btn ${fn?'':'empty'}" onclick="openFoodPicker('${t}')">${disp}</button></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 飲水 mL
+  html += `<tr><th class="label">飲水<span class="lu">mL</span></th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    html += `<td class="time"><input type="number" value="${io?.water??''}" onchange="setIoAt('${t}','water',this.value)"></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 尿 ○/× split
+  html += `<tr><th class="label">尿</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const m = io?.urinePresent || '';
+    html += `<td class="time" style="padding:0"><div class="maru-split">
+      <button class="${m==='○'?'on-circle':''}" onclick="setMaru('${t}','urinePresent','○')">○</button>
+      <button class="${m==='×'?'on-cross':''}" onclick="setMaru('${t}','urinePresent','×')">×</button>
+    </div></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 尿 mL
+  html += `<tr><th class="label">尿量<span class="lu">mL</span></th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    html += `<td class="time"><input type="number" value="${io?.urine??''}" onchange="setIoAt('${t}','urine',this.value)" placeholder="—"></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 便 ○/× split
+  html += `<tr><th class="label">便</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const m = io?.stoolPresent || '';
+    html += `<td class="time" style="padding:0"><div class="maru-split">
+      <button class="${m==='○'?'on-circle':''}" onclick="setMaru('${t}','stoolPresent','○')">○</button>
+      <button class="${m==='×'?'on-cross':''}" onclick="setMaru('${t}','stoolPresent','×')">×</button>
+    </div></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 便スコア 1-7
+  html += `<tr><th class="label">便スコア</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const s = io?.stoolScore;
+    const cls = s ? `stool-cell ${s>=6?'light':''}` : 'stool-cell empty';
+    const sty = s ? `background:var(--st-${s})` : '';
+    html += `<td class="time ${cls}" style="${sty}"><select onchange="setIoAt('${t}','stoolScore',this.value)" style="background:transparent;color:inherit;font-weight:inherit">
+      <option value="" ${!s?'selected':''}>—</option>
+      ${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${s==n?'selected':''}>${n}</option>`).join('')}
+    </select></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // メモ
+  html += `<tr><th class="label">メモ</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    html += `<td class="time"><input value="${escapeHtml(io?.note||'')}" onchange="setIoAt('${t}','note',this.value)" style="font-size:11px"></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  html += `</tbody>`;
+  tbl.innerHTML = html;
+}
+
+// keep old add/upd/del functions for backward compat (used by quick-record etc)
+function renderVitalsTable(){ renderVitalsGrid() }
+function addVitalRow(){
+  pushUndo('バイタル行追加');
+  const p = state.patients[currentId]; p.vitals = p.vitals||[];
+  p.vitals.unshift({ at: nowLocalISO(), temp:null,hr:null,rr:null,spo2:null,staff:'' });
+  saveState(); renderVitalsGrid(); renderAlerts(); renderHeaderVitals();
+}
+function updVital(i,k,v){
+  const p = state.patients[currentId]; const row = p.vitals[i]; if (!row) return;
+  pushUndo('バイタル編集');
+  row[k] = (k==='at'||k==='staff'||k==='bp'||k==='gcs') ? v : (v===''?null:num(v));
+  saveState(); renderVitalsGrid();
+  renderAlerts(); renderHeaderVitals(); updateTabAlertDots();
+}
+function delVital(i){ if (!confirm('削除しますか？')) return;
+  pushUndo('バイタル削除');
+  state.patients[currentId].vitals.splice(i,1); saveState(); renderVitalsGrid(); renderAlerts(); renderHeaderVitals() }
+
+function outOfRangeFlags(p, v){
+  const r = p.range||{}; const out = {};
+  if (v.temp!=null && r.tempL!=null && (v.temp<r.tempL||v.temp>r.tempH)) out.temp=true;
+  if (v.hr!=null   && r.hrL!=null   && (v.hr<r.hrL||v.hr>r.hrH))         out.hr=true;
+  if (v.rr!=null   && r.rrL!=null   && (v.rr<r.rrL||v.rr>r.rrH))         out.rr=true;
+  if (v.spo2!=null && r.spoL!=null  && (v.spo2<r.spoL||v.spo2>r.spoH))   out.spo2=true;
+  return out;
+}
+function lastVital(p){ if (!p.vitals||!p.vitals.length) return null; return [...p.vitals].sort((a,b)=>(b.at||'').localeCompare(a.at||''))[0] }
+
+/* ============================================================
+   IN/OUT GRID (vertical=items, horizontal=time)
+   ============================================================ */
+function renderIoGrid(){
+  const p = state.patients[currentId]; if (!p) return;
+  p.inout = p.inout||[]; p.vitals = p.vitals||[];
+  const times = collectTimes(p.vitals, p.inout);
+  document.getElementById('ioGridMeta').textContent = times.length ? `${times.length}列` : '記録なし';
+  const tbl = document.getElementById('ioGrid');
+  if (!times.length){
+    tbl.innerHTML = `<thead>${timeHeaderHTML([], "addTimeColumn('io')", false, '')}</thead><tbody><tr><td class="hgrid-empty" colspan="2">記録がありません。</td></tr></tbody>`;
+    return;
+  }
+  let html = `<thead>${timeHeaderHTML(times, "addTimeColumn('io')", true, 'delTimeColIo')}</thead><tbody>`;
+  // 食事% (vertical)
+  html += `<tr class="row-food"><th class="label">食事 %</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const v = io?.foodPct;
+    html += `<td class="time" style="padding:0"><div class="pct-quick">`;
+    [0,25,50,75,100].forEach(pc=>{ html += `<button class="${v===pc?'on':''}" onclick="setFoodPct('${t}',${pc})">${pc}</button>` });
+    html += `</div></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 食事内容 (popup picker)
+  html += `<tr><th class="label">食事内容</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const fn = io?.foodName || io?.foodType || '';
+    const fg = io?.foodGram;
+    const disp = fn ? `<span class="fn">${escapeHtml(fn)}</span>${fg!=null?`<span class="fg">${fg}g</span>`:''}` : '＋';
+    html += `<td class="time" style="padding:0"><button class="food-cell-btn ${fn?'':'empty'}" onclick="openFoodPicker('${t}')">${disp}</button></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 飲水 mL
+  html += `<tr><th class="label">飲水<span class="lu">mL</span></th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    html += `<td class="time"><input type="number" value="${io?.water??''}" onchange="setIoAt('${t}','water',this.value)"></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 尿 ○/× split
+  html += `<tr><th class="label">尿</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const m = io?.urinePresent || '';
+    html += `<td class="time" style="padding:0"><div class="maru-split">
+      <button class="${m==='○'?'on-circle':''}" onclick="setMaru('${t}','urinePresent','○')">○</button>
+      <button class="${m==='×'?'on-cross':''}" onclick="setMaru('${t}','urinePresent','×')">×</button>
+    </div></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 尿 mL
+  html += `<tr><th class="label">尿量<span class="lu">mL</span></th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    html += `<td class="time"><input type="number" value="${io?.urine??''}" onchange="setIoAt('${t}','urine',this.value)" placeholder="—"></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 便 ○/× split
+  html += `<tr><th class="label">便</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const m = io?.stoolPresent || '';
+    html += `<td class="time" style="padding:0"><div class="maru-split">
+      <button class="${m==='○'?'on-circle':''}" onclick="setMaru('${t}','stoolPresent','○')">○</button>
+      <button class="${m==='×'?'on-cross':''}" onclick="setMaru('${t}','stoolPresent','×')">×</button>
+    </div></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 便スコア
+  html += `<tr><th class="label">便スコア</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const s = io?.stoolScore;
+    const cls = s ? `stool-cell ${s>=6?'light':''}` : 'stool-cell empty';
+    const sty = s ? `background:var(--st-${s})` : '';
+    html += `<td class="time ${cls}" style="${sty}"><select onchange="setIoAt('${t}','stoolScore',this.value)" style="background:transparent;color:inherit;font-weight:inherit">
+      <option value="" ${!s?'selected':''}>—</option>
+      ${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${s==n?'selected':''}>${n}</option>`).join('')}
+    </select></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 備考
+  html += `<tr><th class="label">備考</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    html += `<td class="time"><input value="${escapeHtml(io?.note||'')}" onchange="setIoAt('${t}','note',this.value)" style="font-size:11px"></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  html += `</tbody>`;
+  tbl.innerHTML = html;
+}
+
+// Legacy compat
+function renderIoTable(){ renderIoGrid() }
+function addIoRow(){ pushUndo('In/Out行追加'); const p = state.patients[currentId]; p.inout = p.inout||[];
+  p.inout.unshift({ at: nowLocalISO(), foodType:'',foodPct:null,water:null,urine:null,urinePresent:'',stoolScore:null,stoolPresent:'',note:'' });
+  saveState(); renderIoGrid() }
+function updIo(i,k,v){ const p = state.patients[currentId]; const r = p.inout[i]; if (!r) return;
+  pushUndo('In/Out編集');
+  if (['foodPct','water','urine'].includes(k)) r[k] = v===''?null:num(v);
+  else if (k==='stoolScore') r[k] = v===''?null:parseInt(v,10);
+  else r[k] = v;
+  saveState(); renderIoGrid() }
+function delIo(i){ if (!confirm('削除しますか？')) return; pushUndo('In/Out削除');
+  state.patients[currentId].inout.splice(i,1); saveState(); renderIoGrid() }
+
+/* ============================================================
+   TREATMENT GRID (rows=drugs/fluids, cols=time)
+   ============================================================ */
+function renderTxGrid(){
+  const p = state.patients[currentId]; if (!p) return;
+  p.meds = p.meds||[]; p.fluids = p.fluids||[];
+
+  // Group fluids by product name
+  const fluidKeys = []; const fluidGroups = {};
+  p.fluids.forEach(f=>{
+    if (!f.product && f.note==='__placeholder__') return;  // skip pure placeholders
+    const key = f.product || '(無名輸液)';
+    if (!fluidGroups[key]){ fluidGroups[key] = { product:f.product||'', entries:[] }; fluidKeys.push(key) }
+    fluidGroups[key].entries.push(f);
+  });
+
+  // Group meds by (name__dose)
+  const medKeys = []; const medGroups = {};
+  p.meds.forEach(m=>{
+    const key = `${m.name||'(無名)'}__${m.dose||''}`;
+    if (!medGroups[key]){ medGroups[key] = { name:m.name||'(無名)', dose:m.dose||'', entries:[] }; medKeys.push(key) }
+    medGroups[key].entries.push(m);
+  });
+
+  const times = collectTimes(p.meds, p.fluids);
+  const tbl = document.getElementById('txGrid');
+  document.getElementById('txGridMeta').textContent = `輸液 ${fluidKeys.length}件 / 薬剤 ${medKeys.length}件 / ${times.length}列`;
+  if (!fluidKeys.length && !medKeys.length){
+    tbl.innerHTML = `<thead>${timeHeaderHTML([], '', false, '')}</thead><tbody><tr><td class="hgrid-empty" colspan="2">薬剤・輸液の記録がありません。「＋ 薬剤を追加」「＋ 輸液を追加」から開始してください。</td></tr></tbody>`;
+    return;
+  }
+
+  let html = `<thead>${timeHeaderHTML(times, "addTimeColumn('tx')", true, 'delTimeColTx')}</thead><tbody>`;
+
+  // Fluid section
+  if (fluidKeys.length){
+    html += `<tr class="section"><th colspan="${times.length+2}">輸液</th></tr>`;
+    fluidKeys.forEach(key=>{
+      const g = fluidGroups[key];
+      html += `<tr><th class="label">${escapeHtml(g.product)}<span class="lu">mL/h</span></th>`;
+      times.forEach(t=>{
+        const e = g.entries.find(x=>x.at===t);
+        const v = (e && e.rate!=null) ? e.rate : '';
+        const cls = (v===''||v===0) ? 'fluid-cell zero' : 'fluid-cell';
+        html += `<td class="time ${cls}"><input type="number" step="any" value="${v}" onchange="setFluidRate('${escapeHtml(key)}','${t}',this.value)" placeholder="—"></td>`;
+      });
+      html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+    });
+  }
+
+  // Med section
+  if (medKeys.length){
+    const now = new Date();
+    html += `<tr class="section"><th colspan="${times.length+2}">薬剤・処置</th></tr>`;
+    medKeys.forEach(key=>{
+      const g = medGroups[key];
+      html += `<tr><th class="label">${escapeHtml(g.name)}<span class="lu">${escapeHtml(g.dose||'')}</span></th>`;
+      times.forEach(t=>{
+        const e = g.entries.find(x=>x.at===t);
+        if (e){
+          const overdue = !e.done && new Date(e.at) < now;
+          const cls = e.done ? 'done' : overdue ? 'overdue' : 'pending';
+          const sym = e.done ? '✓' : overdue ? '⚠' : '⏰';
+          const staff = e.staff || '';
+          html += `<td class="time med-cell ${cls}" onclick="toggleMedAt('${escapeHtml(key)}','${t}')" title="${escapeHtml(staff)}">${sym}${staff?`<span class="mc-staff">${escapeHtml(staff)}</span>`:''}</td>`;
+        } else {
+          html += `<td class="time med-cell empty" onclick="addMedAt('${escapeHtml(key)}','${t}')">＋</td>`;
+        }
+      });
+      html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+    });
+  }
+  html += `</tbody>`;
+  tbl.innerHTML = html;
+}
+
+function setFluidRate(key, t, val){
+  pushUndo('輸液速度');
+  const p = state.patients[currentId]; p.fluids = p.fluids||[];
+  const product = key === '(無名輸液)' ? '' : key;
+  const rate = val==='' ? null : num(val);
+  let e = p.fluids.find(x=>(x.product||'(無名輸液)')===key && x.at===t);
+  if (!e){
+    if (rate==null){ saveState(); renderTxGrid(); return }
+    p.fluids.push({ at:t, product, rate, total:null, note:'' });
+  } else {
+    e.rate = rate;
+    if (e.note==='__placeholder__') e.note = '';
+  }
+  saveState(); renderTxGrid();
+}
+function toggleMedAt(key, t){
+  const p = state.patients[currentId]; p.meds = p.meds||[];
+  const e = p.meds.find(x=>`${x.name||'(無名)'}__${x.dose||''}`===key && x.at===t);
+  if (!e) return;
+  pushUndo(e.done?'投薬完了取消':'投薬完了');
+  e.done = !e.done;
+  saveState(); renderTxGrid(); updateTabAlertDots();
+}
+function addMedAt(key, t){
+  pushUndo('投薬予定追加');
+  const p = state.patients[currentId]; p.meds = p.meds||[];
+  const [name, dose] = key.split('__');
+  p.meds.push({ at:t, name:name||'', dose:dose||'', staff:'', done:false });
+  saveState(); renderTxGrid();
+}
+function addMedDrug(){
+  const name = prompt('薬剤名（例: セファゾリン）');
+  if (!name || !name.trim()) return;
+  const dose = prompt('用量・経路（例: 100mg IV）', '');
+  if (dose===null) return;
+  const at = prompt('最初の投与予定時刻 (YYYY-MM-DDTHH:MM)', nowLocalISO());
+  if (!at) return;
+  pushUndo('薬剤追加');
+  const p = state.patients[currentId]; p.meds = p.meds||[];
+  p.meds.push({ at, name:name.trim(), dose:dose.trim(), staff:'', done:false });
+  saveState(); renderTxGrid();
+}
+function addFluidDrug(){
+  const product = prompt('輸液製剤（例: ラクテック）');
+  if (!product || !product.trim()) return;
+  const rateStr = prompt('開始速度 mL/h（数値）', '');
+  const rate = rateStr==null ? null : (rateStr===''?null:num(rateStr));
+  const at = prompt('開始時刻 (YYYY-MM-DDTHH:MM)', nowLocalISO());
+  if (!at) return;
+  pushUndo('輸液追加');
+  const p = state.patients[currentId]; p.fluids = p.fluids||[];
+  p.fluids.push({ at, product:product.trim(), rate, total:null, note:'' });
+  saveState(); renderTxGrid();
+}
+
+// Legacy compat (kept for any external callers)
+function renderFluidTable(){ renderTxGrid() }
+function addFluidRow(){ addFluidDrug() }
+function updFl(){ renderTxGrid() }
+function delFl(){ renderTxGrid() }
+function renderMedTable(){ renderTxGrid() }
+function addMedRow(){ addMedDrug() }
+function updMed(i,k,v){
+  const r = state.patients[currentId].meds[i]; if (!r) return;
+  pushUndo('投薬編集');
+  if (k==='done') r.done = !!v; else r[k] = v;
+  saveState(); renderTxGrid();
+}
+function delMed(i){ if (!confirm('削除しますか？')) return; pushUndo('投薬削除');
+  state.patients[currentId].meds.splice(i,1); saveState(); renderTxGrid() }
+
+/* ============================================================
+   NOTES
+   ============================================================ */
+function renderNotes(){
+  const p = state.patients[currentId]; p.notes = p.notes||[];
+  const list = document.getElementById('notesList');
+  if (!p.notes.length){ list.innerHTML = `<div style="color:var(--muted);padding:14px 4px;text-align:center">メモがありません。</div>`; return }
+  p.notes.sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  list.innerHTML = p.notes.map((n,i)=>`<div class="list-card">
+    <div class="lc-hdr">
+      <input type="datetime-local" class="fin fin-md" value="${n.at||''}" onchange="updNote(${i},'at',this.value)" style="min-height:34px">
+      <input class="fin fin-md" value="${escapeHtml(n.staff||'')}" placeholder="担当" onchange="updNote(${i},'staff',this.value)" style="min-height:34px">
+      <button class="btn-row" style="margin-left:auto;color:#c5cad3;background:none;border:none;font-size:17px;cursor:pointer" onclick="delNote(${i})">🗑</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+      <div><div style="font-size:10.5px;color:var(--muted);margin-bottom:3px;font-weight:600">活動性</div>
+        <input class="fin" value="${escapeHtml(n.activity||'')}" placeholder="良好/低下" onchange="updNote(${i},'activity',this.value)" style="min-height:36px"></div>
+      <div><div style="font-size:10.5px;color:var(--muted);margin-bottom:3px;font-weight:600">疼痛</div>
+        <input class="fin" value="${escapeHtml(n.pain||'')}" placeholder="なし/軽度" onchange="updNote(${i},'pain',this.value)" style="min-height:36px"></div>
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);margin-bottom:3px;font-weight:600">申し送り</div>
+    <textarea class="ftxt ftxt-auto" oninput="autoExpand(this)" onchange="updNote(${i},'text',this.value)">${escapeHtml(n.text||'')}</textarea>
+  </div>`).join('');
+  // Auto-expand all note textareas to fit content
+  setTimeout(()=>{
+    list.querySelectorAll('textarea.ftxt-auto').forEach(autoExpand);
+  }, 10);
+}
+function addNoteRow(){ pushUndo('メモ追加'); const p = state.patients[currentId]; p.notes = p.notes||[];
+  p.notes.unshift({ at: nowLocalISO(), staff:'',activity:'',pain:'',text:'' }); saveState(); renderNotes() }
+function updNote(i,k,v){ const n = state.patients[currentId].notes[i]; if (!n) return; pushUndo('メモ編集'); n[k] = v; saveState() }
+function delNote(i){ if (!confirm('削除しますか？')) return; pushUndo('メモ削除'); state.patients[currentId].notes.splice(i,1); saveState(); renderNotes() }
+
+/* ============================================================
+   LABS (Pass 5: kanban workflow)
+   ============================================================ */
+function renderLabs(){
+  const p = state.patients[currentId]; p.labs = p.labs||[];
+  const cols = ['ordered','collected','awaiting','reported'];
+  const titles = {ordered:'📋 依頼中',collected:'💉 採取済',awaiting:'⏳ 結果待ち',reported:'✅ 結果あり'};
+  const target = document.getElementById('labCols');
+  const groups = {ordered:[],collected:[],awaiting:[],reported:[]};
+  p.labs.forEach(l=>{ (groups[l.status]||groups.ordered).push(l) });
+  cols.forEach(k=>groups[k].sort((a,b)=>(b.at||'').localeCompare(a.at||'')));
+  target.innerHTML = cols.map(k=>{
+    const items = groups[k];
+    let body = items.length ? items.map(l=>{
+      const resHtml = l.status==='reported' && l.result
+        ? `<div class="lr">${escapeHtml(l.result).replace(/↑/g,'<span class="ab">↑</span>').replace(/↓/g,'<span class="ab">↓</span>').replace(/\n/g,'<br>')}</div>`
+        : '';
+      const photoHtml = (l.photos&&l.photos.length) ? `<div class="lab-photos" style="margin-top:5px">${l.photos.slice(0,4).map((ph,pi)=>`<div class="lab-photo-thumb" style="background-image:url('${ph}');width:38px;height:38px" onclick="event.stopPropagation();viewLabPhoto('${l.id}',${pi})"></div>`).join('')}${l.photos.length>4?`<div style="font-size:10px;color:var(--muted);align-self:center">+${l.photos.length-4}</div>`:''}</div>` : '';
+      return `<div class="lab-card ${l.urgent?'urgent':''}" onclick="openLabEdit('${l.id}')">
+        <div class="ln">
+          <span>${escapeHtml(l.type||'?')} ${l.external?'<span style="font-size:9.5px;color:var(--muted);font-weight:600">[外注]</span>':''}</span>
+          ${l.urgent?'<span class="urg">🚨 緊急</span>':''}
+        </div>
+        <div class="li">${escapeHtml(l.items||'(項目未設定)')}</div>
+        <div class="lt"><span>${fmtDT(l.at)}</span><span>${escapeHtml(l.doctor||'')}</span></div>
+        ${resHtml}
+        ${photoHtml}
+      </div>`;
+    }).join('') : `<div class="lab-empty">なし</div>`;
+    return `<div class="lab-col" data-st="${k}">
+      <div class="h"><span>${titles[k]}</span><span class="n">${items.length}</span></div>
+      <div class="cards">${body}</div>
+    </div>`;
+  }).join('');
+  // status text
+  const urgent = p.labs.filter(l=>l.urgent && l.status!=='reported').length;
+  const abnormal = p.labs.filter(l=>l.status==='reported' && (l.result||'').match(/[↑↓]/)).length;
+  document.getElementById('labStat').textContent =
+    `合計 ${p.labs.length}件 / 緊急未完了 ${urgent}件 / 異常値あり ${abnormal}件`;
+}
+
+function openLabEdit(id){
+  const p = state.patients[currentId]; p.labs = p.labs||[];
+  editingLabId = id;
+  let l = id ? p.labs.find(x=>x.id===id) : null;
+  if (!l) l = { id:null, at:nowLocalISO(), type:'血液', items:'', urgent:false, external:false, status:'ordered', result:'', doctor:p.doctor||'', note:'', photos:[] };
+  currentLabPhotos = [...(l.photos||[])];
+  document.getElementById('labModalTitle').textContent = id ? '検査編集' : '＋ 検査依頼';
+  document.getElementById('lbAt').value = l.at||'';
+  document.getElementById('lbType').value = l.type||'血液';
+  document.getElementById('lbItems').value = l.items||'';
+  document.getElementById('lbDoc').value = l.doctor||'';
+  document.getElementById('lbResult').value = l.result||'';
+  document.getElementById('lbNote').value = l.note||'';
+  document.getElementById('lbUrgent').classList.toggle('on', !!l.urgent);
+  document.getElementById('lbExt').classList.toggle('on', !!l.external);
+  document.querySelectorAll('#lbStatus .seg-i').forEach(s=>s.classList.toggle('on', s.dataset.st===(l.status||'ordered')));
+  document.getElementById('lbDelBtn').style.display = id ? 'inline-flex' : 'none';
+  renderLbPhotos();
+  document.getElementById('labModal').classList.add('on');
+}
+document.getElementById('lbStatus').addEventListener('click',(e)=>{
+  const s = e.target.closest('.seg-i'); if (!s) return;
+  document.querySelectorAll('#lbStatus .seg-i').forEach(x=>x.classList.remove('on'));
+  s.classList.add('on');
+});
+function saveLab(){
+  const p = state.patients[currentId]; p.labs = p.labs||[];
+  const st = document.querySelector('#lbStatus .seg-i.on')?.dataset.st || 'ordered';
+  const data = {
+    at: document.getElementById('lbAt').value,
+    type: document.getElementById('lbType').value,
+    items: document.getElementById('lbItems').value.trim(),
+    doctor: document.getElementById('lbDoc').value.trim(),
+    result: document.getElementById('lbResult').value,
+    note: document.getElementById('lbNote').value.trim(),
+    urgent: document.getElementById('lbUrgent').classList.contains('on'),
+    external: document.getElementById('lbExt').classList.contains('on'),
+    status: st,
+    photos: [...currentLabPhotos],
+  };
+  pushUndo(editingLabId?'検査編集':'検査依頼追加');
+  if (editingLabId){ const l = p.labs.find(x=>x.id===editingLabId); Object.assign(l, data) }
+  else { p.labs.push({ id: uid('l'), ...data }) }
+  saveState(); closeModal('labModal'); renderLabs(); toast('保存しました','ok');
+}
+function deleteLab(){
+  if (!editingLabId) return;
+  if (!confirm('この検査記録を削除しますか？')) return;
+  pushUndo('検査削除');
+  const p = state.patients[currentId];
+  p.labs = p.labs.filter(x=>x.id!==editingLabId);
+  saveState(); closeModal('labModal'); renderLabs(); toast('削除しました');
+}
+
+/* Flow tab was removed in v3 — content now lives in each system tab as horizontal grid */
+function renderFlow(){ /* no-op */ }
+function renderFlowAlerts(){ /* no-op */ }
+
+/* ============================================================
+   WEEK VIEW
+   ============================================================ */
+function renderWeek(){
+  const p = state.patients[currentId];
+  const grid = document.getElementById('weekGrid'); const sum = document.getElementById('weekSum');
+  const days = []; const today = new Date(); today.setHours(0,0,0,0);
+  for (let i=6;i>=0;i--){ const d = new Date(today); d.setDate(d.getDate()-i); days.push(d) }
+  document.getElementById('weekRange').textContent = `${days[0].getMonth()+1}/${days[0].getDate()} 〜 ${days[6].getMonth()+1}/${days[6].getDate()}`;
+  const allV = (p.vitals||[]).filter(v=>v.at && new Date(v.at)>=days[0]);
+  const ioWk = (p.inout||[]).filter(r=>r.at && new Date(r.at)>=days[0]);
+  const tempAvg = avg(allV.map(v=>v.temp));
+  const hrAvg = avg(allV.map(v=>v.hr));
+  const rrAvg = avg(allV.map(v=>v.rr));
+  sum.innerHTML = `
+    <div class="sum-cell"><div class="sl">体温平均</div><div class="sv">${tempAvg?tempAvg.toFixed(1):'—'}<span class="su">℃</span></div></div>
+    <div class="sum-cell"><div class="sl">心拍平均</div><div class="sv">${hrAvg?Math.round(hrAvg):'—'}</div></div>
+    <div class="sum-cell"><div class="sl">呼吸平均</div><div class="sv">${rrAvg?Math.round(rrAvg):'—'}</div></div>
+    <div class="sum-cell"><div class="sl">飲水合計</div><div class="sv">${sumNum(ioWk.map(r=>r.water))||'—'}<span class="su">mL</span></div></div>
+    <div class="sum-cell"><div class="sl">尿合計</div><div class="sv">${sumNum(ioWk.map(r=>r.urine))||'—'}<span class="su">mL</span></div></div>
+    <div class="sum-cell"><div class="sl">排便</div><div class="sv">${ioWk.filter(r=>r.stoolPresent==='○').length}<span class="su">回</span></div></div>`;
+  let h = '<div class="wg-h">項目</div>';
+  days.forEach((d,i)=>{ const isToday = i===6; h += `<div class="wg-h ${isToday?'today':''}">${d.getMonth()+1}/${d.getDate()}<br><span style="font-weight:400;font-size:9.5px">${'日月火水木金土'[d.getDay()]}</span></div>`; });
+  const rows = [
+    ['体温(平均)', d=>{const v=avg(dayVitals(p,d).map(x=>x.temp)); return v?v.toFixed(1):'—'}],
+    ['心拍(平均)', d=>{const v=avg(dayVitals(p,d).map(x=>x.hr)); return v?Math.round(v):'—'}],
+    ['呼吸(平均)', d=>{const v=avg(dayVitals(p,d).map(x=>x.rr)); return v?Math.round(v):'—'}],
+    ['体重(kg)', d=>{const v=dayWeight(p,d); return v?v.toFixed(2):'—'}],
+    ['飲水(mL)', d=>{const v=sumNum(dayIo(p,d).map(x=>x.water)); return v||'—'}],
+    ['尿(mL)', d=>{const v=sumNum(dayIo(p,d).map(x=>x.urine)); return v||'—'}],
+    ['食事%平均', d=>{const v=avg(dayIo(p,d).map(x=>x.foodPct)); return v?Math.round(v):'—'}],
+    ['便スコア', d=>{ const s = dayIo(p,d).filter(x=>x.stoolScore).map(x=>x.stoolScore);
+      if (!s.length) return '<span style="color:var(--muted)">—</span>';
+      const max = Math.max(...s);
+      return `<span class="wg-stool ${max>=6?'light':''}" style="background:var(--st-${max})">${max}${s.length>1?` ×${s.length}`:''}</span>`;
+    }],
+    ['検査', d=>{ const c = (p.labs||[]).filter(l=>l.at && sameDay(new Date(l.at),d)).length; return c||'—' }],
+    ['投薬完了', d=>{const dm=(p.meds||[]).filter(m=>m.at&&sameDay(new Date(m.at),d)); if (!dm.length) return '—'; const dn=dm.filter(m=>m.done).length; return `${dn}/${dm.length}`}],
+  ];
+  rows.forEach(([label, fn])=>{
+    h += `<div class="wg-lbl">${label}</div>`;
+    days.forEach(d=>{ h += `<div>${fn(d)}</div>` });
+  });
+  grid.innerHTML = h;
+}
+function dayVitals(p,d){ return (p.vitals||[]).filter(v=>v.at && sameDay(new Date(v.at),d)) }
+function dayIo(p,d){ return (p.inout||[]).filter(v=>v.at && sameDay(new Date(v.at),d)) }
+function dayWeight(p,d){ const w = (p.weights||[]).filter(x=>x.at && sameDay(new Date(x.at),d)); return w.length ? w[w.length-1].w : null }
+function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate() }
+function avg(arr){ const f=arr.filter(x=>x!=null && !isNaN(x)).map(Number); return f.length? f.reduce((a,b)=>a+b,0)/f.length : null }
+function sumNum(arr){ const f=arr.filter(x=>x!=null && !isNaN(x)).map(Number); return f.length? f.reduce((a,b)=>a+b,0) : 0 }
+
+/* ============================================================
+   CHARTS (existing SVG)
+   ============================================================ */
+function drawCharts(){
+  const p = state.patients[currentId];
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-6); cutoff.setHours(0,0,0,0);
+  const data = (p.vitals||[]).filter(v=>v.at && new Date(v.at)>=cutoff).sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+  document.getElementById('chartArea').innerHTML = svgMultiLine(data, p);
+  document.getElementById('chartWt').innerHTML = svgSimpleLine((p.weights||[]).map(w=>({at:w.at,v:w.w})), '#1e3a5f', 'kg');
+  const days = []; const today = new Date(); today.setHours(0,0,0,0);
+  for (let i=6;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i); days.push(d) }
+  document.getElementById('chartStool').innerHTML = svgStoolBars(p, days);
+}
+function svgMultiLine(data, p){
+  if (!data.length) return `<div style="text-align:center;color:var(--muted);padding:40px">データがありません</div>`;
+  const W=720,H=240,PL=44,PR=44,PT=14,PB=30; const iw=W-PL-PR, ih=H-PT-PB;
+  const t0=new Date(data[0].at).getTime(), t1=new Date(data[data.length-1].at).getTime();
+  const dt=Math.max(1,t1-t0);
+  const series=[
+    {k:'temp',color:'#c0392b',axis:'left'},
+    {k:'hr',color:'#2e86c1',axis:'right'},
+    {k:'rr',color:'#27ae60',axis:'right'},
+    {k:'spo2',color:'#7b4f9e',axis:'leftHi'},
+  ];
+  const ranges={left:{min:35,max:42,vals:[35,37,39,41]},leftHi:{min:80,max:100,vals:[80,90,100]},right:{min:0,max:200,vals:[0,50,100,150,200]}};
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#fafcff;border-radius:6px">`;
+  ranges.left.vals.forEach(v=>{ const y=PT+ih*(1-(v-ranges.left.min)/(ranges.left.max-ranges.left.min));
+    svg+=`<line x1="${PL}" x2="${W-PR}" y1="${y}" y2="${y}" stroke="#eef2f7"/><text x="${PL-6}" y="${y+3}" font-size="10" fill="#888" text-anchor="end">${v}</text>` });
+  ranges.right.vals.forEach(v=>{ const y=PT+ih*(1-(v-ranges.right.min)/(ranges.right.max-ranges.right.min));
+    svg+=`<text x="${W-PR+6}" y="${y+3}" font-size="10" fill="#888">${v}</text>` });
+  const r=p.range||{};
+  if (r.tempL && r.tempH){
+    const y1=PT+ih*(1-(r.tempH-ranges.left.min)/(ranges.left.max-ranges.left.min));
+    const y2=PT+ih*(1-(r.tempL-ranges.left.min)/(ranges.left.max-ranges.left.min));
+    svg+=`<rect x="${PL}" y="${y1}" width="${iw}" height="${y2-y1}" fill="#c0392b" opacity="0.06"/>`;
+  }
+  const days=[]; let d=new Date(t0); d.setHours(0,0,0,0);
+  while(d.getTime()<=t1+86400000){ days.push(new Date(d)); d.setDate(d.getDate()+1) }
+  days.forEach(dd=>{ const x=PL+iw*(dd.getTime()-t0)/dt;
+    if (x>=PL&&x<=W-PR){ svg+=`<line x1="${x}" x2="${x}" y1="${PT}" y2="${H-PB}" stroke="#eaeef3" stroke-dasharray="2,3"/><text x="${x}" y="${H-PB+13}" font-size="10" fill="#888" text-anchor="middle">${dd.getMonth()+1}/${dd.getDate()}</text>` } });
+  series.forEach(s=>{ const rng=ranges[s.axis];
+    const pts=data.filter(v=>v[s.k]!=null && !isNaN(v[s.k])).map(v=>{ const x=PL+iw*(new Date(v.at).getTime()-t0)/dt; const y=PT+ih*(1-(Math.max(rng.min,Math.min(rng.max,v[s.k]))-rng.min)/(rng.max-rng.min)); return {x,y} });
+    if (pts.length>1) svg+=`<path d="M${pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L')}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
+    pts.forEach(pt=>{ svg+=`<circle cx="${pt.x}" cy="${pt.y}" r="2.6" fill="${s.color}"/>` });
+  });
+  svg+=`</svg>`; return svg;
+}
+function svgSimpleLine(data, color, unit){
+  if (!data.length) return `<div style="text-align:center;color:var(--muted);padding:30px">データがありません</div>`;
+  const W=720,H=160,PL=44,PR=18,PT=12,PB=26; const iw=W-PL-PR, ih=H-PT-PB;
+  const vals=data.map(d=>d.v).filter(v=>v!=null);
+  const min=Math.min(...vals)*0.96, max=Math.max(...vals)*1.04;
+  const t0=new Date(data[0].at).getTime(), t1=new Date(data[data.length-1].at).getTime();
+  const dt=Math.max(1,t1-t0);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#fafcff;border-radius:6px">`;
+  [0,.5,1].forEach(f=>{ const y=PT+ih*(1-f); const v=(min+(max-min)*f).toFixed(2);
+    svg+=`<line x1="${PL}" x2="${W-PR}" y1="${y}" y2="${y}" stroke="#eef2f7"/><text x="${PL-6}" y="${y+3}" font-size="10" fill="#888" text-anchor="end">${v}</text>` });
+  const pts=data.map(d=>{ const x=PL+iw*(new Date(d.at).getTime()-t0)/dt; const y=PT+ih*(1-(d.v-min)/(max-min||1)); return {x,y} });
+  if (pts.length>1) svg+=`<path d="M${pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L')}" fill="none" stroke="${color}" stroke-width="2"/>`;
+  pts.forEach(p=>{ svg+=`<circle cx="${p.x}" cy="${p.y}" r="3" fill="${color}"/>` });
+  svg+=`<text x="${W-PR}" y="${H-PB+13}" font-size="10" fill="#888" text-anchor="end">${unit||''}</text></svg>`;
+  return svg;
+}
+function svgStoolBars(p, days){
+  const W=720,H=180,PL=40,PR=14,PT=18,PB=30; const iw=W-PL-PR, ih=H-PT-PB; const bw=iw/days.length-6;
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#fafcff;border-radius:6px">`;
+  for (let s=1;s<=7;s++){ const y=PT+ih*(1-(s-1)/6);
+    svg+=`<line x1="${PL}" x2="${W-PR}" y1="${y}" y2="${y}" stroke="#eef2f7"/><text x="${PL-6}" y="${y+3}" font-size="10" fill="#888" text-anchor="end">${s}</text>` }
+  const stoolHex=['#5e3a22','#7a4e2f','#9a663d','#b6803c','#d4a04c','#e8c25e','#f4dc7a'];
+  days.forEach((d,i)=>{ const cx=PL+(iw/days.length)*i+(iw/days.length)/2;
+    svg+=`<text x="${cx}" y="${H-PB+13}" font-size="10" fill="#888" text-anchor="middle">${d.getMonth()+1}/${d.getDate()}</text>`;
+    const scores=dayIo(p,d).filter(x=>x.stoolScore).map(x=>x.stoolScore);
+    if (!scores.length) return;
+    const max=Math.max(...scores); const y=PT+ih*(1-(max-1)/6); const barH=(H-PB)-y;
+    svg+=`<rect x="${cx-bw/2}" y="${y}" width="${bw}" height="${barH}" fill="${stoolHex[max-1]}" rx="3"/><text x="${cx}" y="${y-4}" font-size="11" fill="#333" text-anchor="middle" font-weight="700">${max}</text>`;
+  });
+  svg+=`</svg>`; return svg;
+}
+
+/* ============================================================
+   FIELD TOGGLES
+   ============================================================ */
+function renderFieldToggles(){
+  const p = state.patients[currentId];
+  p.enabledFields = p.enabledFields || FIELDS_DEF.filter(f=>f.def).map(f=>f.k);
+  const c = document.getElementById('fieldToggles');
+  c.innerHTML = FIELDS_DEF.map(f=>{
+    const on = p.enabledFields.includes(f.k);
+    return `<div class="toggle-row">
+      <div><div class="label">${f.label} <span style="color:var(--muted);font-size:11px;font-weight:400">${f.unit}</span></div>
+        <div class="desc">バイタル表・ヘッダー・フローシートに表示${f.def?'':'（デフォルト非表示）'}</div></div>
+      <div class="tgl ${on?'on':''}" onclick="toggleField('${f.k}')"></div>
+    </div>`;
+  }).join('');
+}
+function toggleField(k){
+  pushUndo('表示項目切替');
+  const p = state.patients[currentId]; p.enabledFields = p.enabledFields||[];
+  const i = p.enabledFields.indexOf(k);
+  if (i>=0) p.enabledFields.splice(i,1); else p.enabledFields.push(k);
+  saveState(); renderFieldToggles(); renderVitalsTable(); renderHeaderVitals();
+}
+
+/* ============================================================
+   ALERTS (Pass 4: cooldown to prevent spam)
+   ============================================================ */
+function checkAlertsFor(p, vital){
+  const r = p.range||{}; const al = [];
+  if (vital.temp!=null && r.tempL!=null && (vital.temp<r.tempL||vital.temp>r.tempH)) al.push(`体温 ${vital.temp}℃`);
+  if (vital.hr!=null && r.hrL!=null && (vital.hr<r.hrL||vital.hr>r.hrH)) al.push(`心拍 ${vital.hr}/分`);
+  if (vital.rr!=null && r.rrL!=null && (vital.rr<r.rrL||vital.rr>r.rrH)) al.push(`呼吸 ${vital.rr}/分`);
+  if (vital.spo2!=null && r.spoL!=null && (vital.spo2<r.spoL)) al.push(`SpO₂ ${vital.spo2}%`);
+  return al;
+}
+function renderAlerts(){
+  if (!currentId) return;
+  const p = state.patients[currentId];
+  const area = document.getElementById('alertsArea'); if (!area) return;
+  const last = lastVital(p); const vAl = last ? checkAlertsFor(p, last) : [];
+  const now = new Date();
+  const overdue = (p.meds||[]).filter(m=>!m.done && m.at && new Date(m.at) < now);
+  let html = '';
+  if (vAl.length) html += `<div class="alert-banner"><div class="ai">⚠️</div><div><div class="at">バイタル異常値（直近）</div><div class="am">${vAl.join(' / ')}</div></div></div>`;
+  if (overdue.length) html += `<div class="alert-banner warn"><div class="ai">⏰</div><div><div class="at">投薬予定超過 ${overdue.length}件</div><div class="am">${overdue.slice(0,3).map(m=>`${escapeHtml(m.name||'')} ${fmtDT(m.at)}`).join(' / ')}${overdue.length>3?' …':''}</div></div></div>`;
+  area.innerHTML = html;
+}
+
+/* ============================================================
+   HANDOVER VIEW (Pass-fix #3: shift change one-glance landing)
+   ============================================================ */
+function renderHandover(){
+  const p = state.patients[currentId]; if (!p) return;
+  const now = Date.now();
+  document.getElementById('hoNow').textContent = `現在 ${fmtDT(nowLocalISO())}`;
+  renderHoAlerts(p, now);
+  renderHoSparklines(p, now, 12*3600*1000);
+  renderHoIoSum(p, now, 24*3600*1000);
+  renderHoSchedule(p, now, 8*3600*1000);
+  renderHoFeed(p, now, 8*3600*1000);
+}
+
+function renderHoAlerts(p, now){
+  const last = lastVital(p);
+  const vAl = last ? checkAlertsFor(p, last) : [];
+  const overdue = (p.meds||[]).filter(m=>!m.done && m.at && new Date(m.at) < new Date(now));
+  const urgentLabs = (p.labs||[]).filter(l=>l.urgent && l.status!=='reported');
+  const abnLabs = (p.labs||[]).filter(l=>l.status==='reported' && (l.result||'').match(/[↑↓]/));
+  let html = '';
+  if (vAl.length){
+    html += `<div class="alert-banner"><div class="ai">⚠️</div><div>
+      <div class="at">直近バイタル基準外</div>
+      <div class="am">${vAl.join(' / ')} <span style="color:var(--muted)">（${fmtDT(last.at)}）</span></div>
+    </div></div>`;
+  }
+  if (overdue.length){
+    html += `<div class="alert-banner warn"><div class="ai">⏰</div><div>
+      <div class="at">投薬予定時刻超過 ${overdue.length}件</div>
+      <div class="am">${overdue.slice(0,4).map(m=>`${escapeHtml(m.name||'')} ${fmtDT(m.at)}`).join(' / ')}${overdue.length>4?' …':''}</div>
+    </div></div>`;
+  }
+  if (urgentLabs.length){
+    html += `<div class="alert-banner warn"><div class="ai">🚨</div><div>
+      <div class="at">緊急検査 未完了 ${urgentLabs.length}件</div>
+      <div class="am">${urgentLabs.slice(0,3).map(l=>escapeHtml(l.type+' '+l.items)).join(' / ')}</div>
+    </div></div>`;
+  }
+  if (abnLabs.length){
+    const recent = abnLabs.sort((a,b)=>(b.at||'').localeCompare(a.at||''))[0];
+    html += `<div class="alert-banner warn"><div class="ai">🔬</div><div>
+      <div class="at">検査異常値あり ${abnLabs.length}件</div>
+      <div class="am">最新: ${escapeHtml(recent.type+' '+recent.items)} (${fmtD(recent.at)})</div>
+    </div></div>`;
+  }
+  if (!html){
+    html = `<div class="alert-banner" style="background:#e8f5ef;border-left-color:var(--green)">
+      <div class="ai">✅</div><div><div class="at" style="color:var(--green)">特記事項なし</div>
+      <div class="am">バイタル・投薬・検査いずれも安定しています</div></div></div>`;
+  }
+  document.getElementById('hoAlerts').innerHTML = html;
+}
+
+function sparkline(values, color, w=200, h=30){
+  if (!values.length) return '';
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = max - min || 1;
+  const step = w / Math.max(1, values.length - 1);
+  const yOf = v => (h-3) - ((v-min)/range)*(h-6);
+  const points = values.map((v,i)=>`${(i*step).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ');
+  const dots = values.map((v,i)=>`<circle cx="${(i*step).toFixed(1)}" cy="${yOf(v).toFixed(1)}" r="1.8" fill="${color}"/>`).join('');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+  </svg>`;
+}
+
+function renderHoSparklines(p, now, windowMs){
+  const cutoff = now - windowMs;
+  const data = (p.vitals||[]).filter(v=>v.at && new Date(v.at).getTime()>=cutoff)
+                              .sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+  const c = document.getElementById('hoSparklines');
+  if (!data.length){ c.innerHTML = '<div class="ho-empty">直近12時間のバイタル記録がありません</div>'; return }
+  const en = p.enabledFields || ['temp','hr','rr','spo2'];
+  const colors = { temp:'#c0392b', hr:'#2e86c1', rr:'#27ae60', spo2:'#7b4f9e', bp:'#c0392b', crt:'#7a8aa5', gcs:'#3b4a63' };
+  const r = p.range||{};
+  const rmap = {temp:[r.tempL,r.tempH],hr:[r.hrL,r.hrH],rr:[r.rrL,r.rrH],spo2:[r.spoL,r.spoH]};
+  let html = '<div class="ho-spark-rows">';
+  en.forEach(k=>{
+    const f = FIELDS_DEF.find(x=>x.k===k); if (!f) return;
+    if (k==='bp'||k==='gcs') return;  // text-type, skip sparkline
+    const vals = data.map(d=>d[k]).filter(v=>v!=null && !isNaN(v)).map(Number);
+    if (!vals.length) return;
+    const latest = vals[vals.length-1];
+    const prev = vals.length>=2 ? vals[vals.length-2] : latest;
+    const rg = rmap[k]||[];
+    const abn = rg[0]!=null && (latest<rg[0]||latest>rg[1]);
+    const diff = latest - prev;
+    const sigDiff = Math.abs(diff) > Math.max(0.3, Math.abs(prev)*0.02);
+    const trend = !sigDiff ? '→' : diff>0 ? '↑' : '↓';
+    const trendColor = !sigDiff ? 'var(--muted)' : diff>0 ? (abn?'var(--red)':'#d68910') : (abn?'var(--red)':'var(--blue)');
+    const rangeText = rg[0]!=null ? `基準 ${rg[0]}〜${rg[1]}` : '';
+    html += `<div class="ho-spark-row ${abn?'abn':''}">
+      <div class="ho-spark-label">${f.label}<span class="u">${f.unit}</span></div>
+      <div class="ho-spark-svg">${sparkline(vals, colors[k]||'#666')}</div>
+      <div class="ho-spark-range">${rangeText}</div>
+      <div class="ho-spark-val">${latest}</div>
+      <div class="ho-spark-trend" style="color:${trendColor}">${trend}</div>
+    </div>`;
+  });
+  html += '</div>';
+  c.innerHTML = html;
+}
+
+function renderHoIoSum(p, now, windowMs){
+  const cutoff = now - windowMs;
+  const ioWin = (p.inout||[]).filter(r=>r.at && new Date(r.at).getTime()>=cutoff);
+  const foodAvg = avg(ioWin.map(r=>r.foodPct));
+  const waterSum = sumNum(ioWin.map(r=>r.water));
+  const urineSum = sumNum(ioWin.map(r=>r.urine));
+  const stoolCnt = ioWin.filter(r=>r.stoolPresent==='○').length;
+  const scores = ioWin.filter(r=>r.stoolScore).map(r=>r.stoolScore);
+  const stoolRange = scores.length ? (scores.length===1?String(scores[0]):`${Math.min(...scores)}〜${Math.max(...scores)}`) : '—';
+  const recentFluid = (p.fluids||[]).filter(f=>f.at && new Date(f.at).getTime()<=now).sort((a,b)=>(b.at||'').localeCompare(a.at||''))[0];
+  const rate = recentFluid ? recentFluid.rate : null;
+  const npo = p.status?.npo;
+  const npw = p.status?.npw;
+  document.getElementById('hoIoSum').innerHTML = `
+    <div class="sum-row">
+      <div class="sum-cell"><div class="sl">食事%平均</div><div class="sv ${npo?'warn':''}">${npo?'NPO':(foodAvg!=null?Math.round(foodAvg):'—')}</div></div>
+      <div class="sum-cell"><div class="sl">飲水</div><div class="sv ${npw?'warn':''}">${npw?'絶水':(waterSum||'—')}<span class="su">${npw?'':'mL'}</span></div></div>
+      <div class="sum-cell"><div class="sl">尿</div><div class="sv">${urineSum||'—'}<span class="su">mL</span></div></div>
+      <div class="sum-cell"><div class="sl">排便</div><div class="sv">${stoolCnt}<span class="su">回</span></div></div>
+      <div class="sum-cell"><div class="sl">便スコア</div><div class="sv">${stoolRange}</div></div>
+      <div class="sum-cell"><div class="sl">輸液速度</div><div class="sv">${rate!=null?rate:'—'}<span class="su">mL/h</span></div></div>
+    </div>`;
+}
+
+function renderHoSchedule(p, now, windowMs){
+  const horizon = now + windowMs;
+  const events = [];
+  (p.meds||[]).filter(m=>!m.done && m.at).forEach(m=>{
+    const t = new Date(m.at).getTime();
+    if (t>=now && t<=horizon) events.push({ at:m.at, icon:'💉', text:`${m.name||''} ${m.dose||''}`, t });
+  });
+  (p.labs||[]).filter(l=>l.at && l.status==='ordered').forEach(l=>{
+    const t = new Date(l.at).getTime();
+    if (t>=now && t<=horizon) events.push({ at:l.at, icon:'🔬', text:`${l.type||''} ${l.items||''}${l.urgent?' 🚨緊急':''}`, t });
+  });
+  events.sort((a,b)=>a.t-b.t);
+  const c = document.getElementById('hoSchedule');
+  if (!events.length){ c.innerHTML = '<div class="ho-empty">8時間以内の予定はありません</div>'; return }
+  c.innerHTML = events.map(e=>{
+    const inMin = Math.round((e.t - now)/60000);
+    const rel = inMin<60 ? `${inMin}分後` : `${Math.floor(inMin/60)}時間${inMin%60}分後`;
+    return `<div class="ho-feed-row future">
+      <div class="ho-feed-time">${fmtDT(e.at)}<span class="rel">${rel}</span></div>
+      <div class="ho-feed-icon">${e.icon}</div>
+      <div class="ho-feed-text"><div class="ho-feed-main">${escapeHtml(e.text)}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderHoFeed(p, now, windowMs){
+  const cutoff = now - windowMs;
+  const events = [];
+  (p.vitals||[]).filter(v=>v.at && new Date(v.at).getTime()>=cutoff).forEach(v=>{
+    const out = outOfRangeFlags(p, v);
+    const abn = Object.values(out).some(x=>x);
+    const parts = [];
+    ['temp','hr','rr','spo2'].forEach(k=>{
+      if (v[k]!=null){
+        const f = FIELDS_DEF.find(x=>x.k===k);
+        parts.push(`${f?.short||k} ${v[k]}${out[k]?'⚠':''}`);
+      }
+    });
+    events.push({ at:v.at, icon:'📊', text:parts.join(' / '), staff:v.staff, abn });
+  });
+  (p.meds||[]).filter(m=>m.at && new Date(m.at).getTime()>=cutoff).forEach(m=>{
+    const overdueAbn = !m.done && new Date(m.at)<new Date(now);
+    events.push({
+      at:m.at,
+      icon: m.done?'✅':(overdueAbn?'⏰':'💉'),
+      text: `${m.name||''} ${m.dose||''}${m.done?'':' '+(overdueAbn?'(時刻超過)':'(予定)')}`,
+      staff: m.staff,
+      abn: overdueAbn
+    });
+  });
+  (p.inout||[]).filter(r=>r.at && new Date(r.at).getTime()>=cutoff).forEach(r=>{
+    const parts = [];
+    if (r.foodPct!=null) parts.push(`食${r.foodPct}%${r.foodType?'('+r.foodType+')':''}`);
+    if (r.water!=null) parts.push(`水${r.water}mL`);
+    if (r.urine!=null) parts.push(`尿${r.urine}mL`);
+    if (r.stoolScore) parts.push(`便スコア${r.stoolScore}`);
+    if (r.stoolPresent==='○' && !r.stoolScore) parts.push('排便あり');
+    if (r.note) parts.push(`「${r.note}」`);
+    if (parts.length) events.push({ at:r.at, icon:'💧', text:parts.join(' / '), staff:'' });
+  });
+  (p.notes||[]).filter(n=>n.at && new Date(n.at).getTime()>=cutoff).forEach(n=>{
+    const extras = [];
+    if (n.activity) extras.push(`活動性: ${n.activity}`);
+    if (n.pain) extras.push(`疼痛: ${n.pain}`);
+    const txt = (n.text||'').slice(0,180);
+    events.push({ at:n.at, icon:'📝', text: (txt||'(記載なし)') + (extras.length?' ['+extras.join(' / ')+']':''), staff:n.staff });
+  });
+  (p.labs||[]).filter(l=>l.at && new Date(l.at).getTime()>=cutoff).forEach(l=>{
+    let txt = `${l.type||''} ${l.items||''}`;
+    let icon = '🔬';
+    if (l.status==='reported'){
+      icon = '📄';
+      const firstLine = (l.result||'').split('\n')[0];
+      if (firstLine) txt += ` → ${firstLine}`;
+    } else if (l.status==='collected') txt += ' → 採取済';
+    else if (l.status==='awaiting') txt += ' → 結果待ち';
+    else txt += ' → 依頼中';
+    events.push({ at:l.at, icon, text:txt, staff:l.doctor||'', abn:l.urgent || (l.result||'').match(/[↑↓]/) });
+  });
+  (p.fluids||[]).filter(f=>f.at && new Date(f.at).getTime()>=cutoff).forEach(f=>{
+    events.push({ at:f.at, icon:'💧', text:`輸液 ${f.product||''} ${f.rate||0}mL/h${f.note?' ('+f.note+')':''}`, staff:'' });
+  });
+  events.sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  const c = document.getElementById('hoFeed');
+  if (!events.length){ c.innerHTML = '<div class="ho-empty">直近8時間の活動記録はありません</div>'; return }
+  c.innerHTML = events.slice(0, 60).map(e=>{
+    const ago = Math.round((now - new Date(e.at).getTime())/60000);
+    const rel = ago<60 ? `${ago}分前` : ago<1440 ? `${Math.floor(ago/60)}時間前` : `${Math.floor(ago/1440)}日前`;
+    return `<div class="ho-feed-row ${e.abn?'abn':''}">
+      <div class="ho-feed-time">${fmtDT(e.at)}<span class="rel">${rel}</span></div>
+      <div class="ho-feed-icon">${e.icon}</div>
+      <div class="ho-feed-text">
+        <div class="ho-feed-main">${escapeHtml(e.text)}</div>
+        ${e.staff?`<div class="ho-feed-staff">— ${escapeHtml(e.staff)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   COLUMN HIGHLIGHT (tap a cell to light up its time column)
+   ============================================================ */
+let hlColIdx = -1;
+document.addEventListener('click', e=>{
+  const cell = e.target.closest('.hgrid-tbl td.time, .hgrid-tbl th.time');
+  if (!cell){
+    if (hlColIdx >= 0){
+      document.querySelectorAll('.hgrid-tbl .col-hl').forEach(el=>el.classList.remove('col-hl'));
+      hlColIdx = -1;
+    }
+    return;
+  }
+  const tbl = cell.closest('.hgrid-tbl'); if (!tbl) return;
+  const row = cell.parentElement;
+  const idx = [...row.children].indexOf(cell);
+  // Toggle off if same column re-clicked
+  if (hlColIdx === idx){
+    tbl.querySelectorAll('.col-hl').forEach(el=>el.classList.remove('col-hl'));
+    hlColIdx = -1;
+    return;
+  }
+  tbl.querySelectorAll('.col-hl').forEach(el=>el.classList.remove('col-hl'));
+  hlColIdx = idx;
+  tbl.querySelectorAll('tr').forEach(tr=>{
+    const c = tr.children[idx];
+    if (c && (c.classList.contains('time') || c.tagName==='TH')) c.classList.add('col-hl');
+  });
+});
+
+/* ============================================================
+   ○/× SPLIT BUTTONS + QUICK I/O
+   ============================================================ */
+function setMaru(t, type, mark){
+  pushUndo(type==='urinePresent'?'尿○/×':'便○/×');
+  const p = state.patients[currentId]; p.inout = p.inout||[];
+  const r = ensureRecordAt(p.inout, t, {foodType:'',foodPct:null,water:null,urine:null,urinePresent:'',stoolScore:null,stoolPresent:'',note:''});
+  r[type] = (r[type] === mark) ? '' : mark;
+  saveState(); renderVitalsGrid(); renderIoGrid(); renderHeaderVitals();
+}
+function quickIoNow(type, mark){
+  const t = nowLocalISO();
+  pushUndo(type==='urinePresent'?'尿クイック':'便クイック');
+  const p = state.patients[currentId]; p.inout = p.inout||[];
+  const r = ensureRecordAt(p.inout, t, {foodType:'',foodPct:null,water:null,urine:null,urinePresent:'',stoolScore:null,stoolPresent:'',note:''});
+  r[type] = mark;
+  saveState();
+  renderVitalsGrid(); renderIoGrid(); renderHeaderVitals();
+  toast(`${type==='urinePresent'?'排尿':'排便'} ${mark} を記録 (${fmtDT(t)})`,'ok');
+}
+
+/* Backward-compat alias for old toggleMaru that's still referenced */
+function toggleMaru(t, type){
+  const p = state.patients[currentId]; p.inout = p.inout||[];
+  const r = ensureRecordAt(p.inout, t, {foodType:'',foodPct:null,water:null,urine:null,urinePresent:'',stoolScore:null,stoolPresent:'',note:''});
+  pushUndo(type==='urinePresent'?'尿○/×':'便○/×');
+  const cur = r[type];
+  r[type] = cur==='○' ? '×' : cur==='×' ? '' : '○';
+  saveState(); renderVitalsGrid(); renderIoGrid(); renderHeaderVitals();
+}
+
+/* ============================================================
+   FOOD PICKER MODAL
+   ============================================================ */
+const FOOD_LIST = [
+  'i/d 缶','i/d ドライ','k/d 缶','k/d ドライ','w/d 缶','c/d 缶',
+  'ロイカナ消化器','ロイカナ消化器サポート低脂肪',
+  'ロイカナ腎臓サポート','ロイカナ肝臓サポート',
+  'ロイカナ低分子プロテイン','ロイカナ満腹感サポート',
+  '一般食 缶','一般食 ドライ','ふやかしフード','流動食','ベビーフード','蜂蜜水',
+  '絶食(NPO)','その他'
+];
+let currentFoodTime = null;
+let selectedFood = '';
+function openFoodPicker(t){
+  currentFoodTime = t;
+  const p = state.patients[currentId];
+  const io = findRecordAt(p.inout, t);
+  selectedFood = io?.foodName || io?.foodType || '';
+  document.getElementById('fpGram').value = io?.foodGram ?? '';
+  document.getElementById('fpTitle').innerHTML = `食事入力: ${fmtDT(t)} <button class="modal-x" onclick="closeModal('foodModal')">×</button>`;
+  renderFoodButtons();
+  document.getElementById('fpCustom').style.display = (selectedFood && !FOOD_LIST.includes(selectedFood))?'block':'none';
+  if (selectedFood && !FOOD_LIST.includes(selectedFood)){
+    document.getElementById('fpCustomName').value = selectedFood;
+  } else {
+    document.getElementById('fpCustomName').value = '';
+  }
+  document.getElementById('foodModal').classList.add('on');
+}
+function renderFoodButtons(){
+  const c = document.getElementById('fpFoods');
+  c.innerHTML = FOOD_LIST.map(f=>`<button data-food="${escapeHtml(f)}" class="${f===selectedFood?'on':''}" onclick="selectFood(this.dataset.food)">${escapeHtml(f)}</button>`).join('');
+}
+function selectFood(f){
+  if (f==='その他'){
+    selectedFood = 'その他';
+    document.getElementById('fpCustom').style.display = 'block';
+  } else {
+    selectedFood = f;
+    document.getElementById('fpCustom').style.display = 'none';
+  }
+  renderFoodButtons();
+}
+function saveFood(){
+  if (!currentFoodTime) return;
+  pushUndo('食事編集');
+  const p = state.patients[currentId];
+  const r = ensureRecordAt(p.inout, currentFoodTime, {foodType:'',foodPct:null,water:null,urine:null,urinePresent:'',stoolScore:null,stoolPresent:'',note:''});
+  let foodName = selectedFood;
+  if (foodName==='その他'){
+    const custom = document.getElementById('fpCustomName').value.trim();
+    foodName = custom || 'その他';
+  }
+  r.foodName = foodName;
+  r.foodType = foodName;  // keep for backward compat
+  const g = num(document.getElementById('fpGram').value);
+  r.foodGram = g;
+  saveState(); closeModal('foodModal');
+  renderVitalsGrid(); renderIoGrid();
+  toast('食事を記録しました','ok');
+}
+
+/* ============================================================
+   SCHEDULE MODAL (バイタル/投薬 一括予定作成)
+   ============================================================ */
+let schedType = 'vital';
+const schedSelectedHours = new Set();
+let schedSelectedDays = 1;
+function openScheduler(defaultType){
+  schedType = defaultType==='med'?'med':'vital';
+  schedSelectedHours.clear();
+  schedSelectedDays = 1;
+  document.getElementById('schedDate').value = todayISO();
+  document.getElementById('schedTitle').innerHTML = `📅 ${schedType==='med'?'投薬予定':'バイタル予定'}を作成 <button class="modal-x" onclick="closeModal('schedModal')">×</button>`;
+  document.getElementById('schedMedFields').style.display = schedType==='med'?'block':'none';
+  document.getElementById('schedMedName').value = '';
+  document.getElementById('schedMedDose').value = '';
+  document.querySelectorAll('#schedDays button').forEach(b=>b.classList.toggle('on', b.dataset.d==='1'));
+  // Build hour grid 0-23 (focused on 0-23 but emphasis on 6-22)
+  const hg = document.getElementById('schedHours');
+  let h = '';
+  for (let i=0; i<=23; i++){
+    h += `<button data-h="${i}" onclick="toggleSchedHour(${i})">${String(i).padStart(2,'0')}</button>`;
+  }
+  hg.innerHTML = h;
+  updateSchedPreview();
+  document.getElementById('schedModal').classList.add('on');
+}
+function toggleSchedHour(h){
+  if (schedSelectedHours.has(h)) schedSelectedHours.delete(h);
+  else schedSelectedHours.add(h);
+  const btn = document.querySelector(`#schedHours button[data-h="${h}"]`);
+  if (btn) btn.classList.toggle('on', schedSelectedHours.has(h));
+  updateSchedPreview();
+}
+function schedPreset(name){
+  schedSelectedHours.clear();
+  const sets = {
+    q4h: [6,10,14,18,22,2],
+    q6h: [6,12,18,0],
+    q8h: [6,14,22],
+    q12h:[8,20],
+    q24h:[8],
+    clear:[]
+  };
+  (sets[name]||[]).forEach(h=>schedSelectedHours.add(h));
+  document.querySelectorAll('#schedHours button').forEach(b=>{
+    const h = parseInt(b.dataset.h,10);
+    b.classList.toggle('on', schedSelectedHours.has(h));
+  });
+  updateSchedPreview();
+}
+function updateSchedPreview(){
+  const hrs = [...schedSelectedHours].sort((a,b)=>a-b);
+  const count = hrs.length * schedSelectedDays;
+  const hrText = hrs.length ? hrs.map(h=>String(h).padStart(2,'0')+':00').join(' / ') : '時刻未選択';
+  document.getElementById('schedPreview').textContent =
+    `→ ${schedSelectedDays}日 × ${hrs.length}時刻 = ${count}件の予定\n${hrText}`;
+}
+// Wire day buttons
+document.addEventListener('click', e=>{
+  const sd = e.target.closest('#schedDays button');
+  if (sd){
+    schedSelectedDays = parseInt(sd.dataset.d,10);
+    document.querySelectorAll('#schedDays button').forEach(b=>b.classList.toggle('on', b===sd));
+    updateSchedPreview();
+  }
+});
+function commitSchedule(){
+  const startDate = document.getElementById('schedDate').value;
+  if (!startDate){ toast('開始日を入力','err'); return }
+  if (schedSelectedHours.size===0){ toast('時刻を1つ以上選択','err'); return }
+  let medName='', medDose='';
+  if (schedType==='med'){
+    medName = document.getElementById('schedMedName').value.trim();
+    medDose = document.getElementById('schedMedDose').value.trim();
+    if (!medName){ toast('薬剤名を入力','err'); return }
+  }
+  pushUndo(schedType==='med'?'投薬予定一括追加':'バイタル予定一括追加');
+  const p = state.patients[currentId];
+  p.vitals = p.vitals||[]; p.meds = p.meds||[];
+  let count = 0;
+  const hrs = [...schedSelectedHours].sort((a,b)=>a-b);
+  for (let d=0; d<schedSelectedDays; d++){
+    const dt = new Date(startDate+'T00:00');
+    dt.setDate(dt.getDate()+d);
+    const ds = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    hrs.forEach(h=>{
+      const at = `${ds}T${String(h).padStart(2,'0')}:00`;
+      if (schedType==='vital'){
+        if (!p.vitals.find(v=>v.at===at)){
+          p.vitals.push({ at, temp:null, hr:null, rr:null, spo2:null, staff:'', planned:true });
+          count++;
+        }
+      } else {
+        if (!p.meds.find(m=>m.at===at && m.name===medName && m.dose===medDose)){
+          p.meds.push({ at, name:medName, dose:medDose, staff:'', done:false });
+          count++;
+        }
+      }
+    });
+  }
+  saveState(); closeModal('schedModal');
+  if (schedType==='vital'){ renderVitalsGrid(); renderIoGrid() }
+  else renderTxGrid();
+  toast(`${count}件の予定を作成しました`,'ok');
+}
+
+/* ============================================================
+   BULK MED SCHEDULER (multi-drug shared schedule)
+   ============================================================ */
+let bulkMedList = [];
+const bmSelectedHours = new Set();
+let bmSelectedDays = 1;
+const ROUTE_OPTIONS = ['IV','IM','SC','CRI','PO','IO','IH','点眼','その他'];
+const UNIT_OPTIONS = ['mg','mg/kg','mL','mL/h','μg','μg/kg/min','IU','g','滴','錠'];
+function openBulkMedScheduler(){
+  bulkMedList = [
+    {name:'', dose:'', unit:'mg', route:'IV'},
+    {name:'', dose:'', unit:'mg', route:'IV'},
+  ];
+  bmSelectedHours.clear();
+  bmSelectedDays = 1;
+  document.getElementById('bmDate').value = todayISO();
+  document.querySelectorAll('#bmDays button').forEach(b=>b.classList.toggle('on', b.dataset.d==='1'));
+  let h = '';
+  for (let i=0; i<=23; i++) h += `<button data-h="${i}" onclick="toggleBmHour(${i})">${String(i).padStart(2,'0')}</button>`;
+  document.getElementById('bmHours').innerHTML = h;
+  renderBmList();
+  updateBmPreview();
+  document.getElementById('bulkMedModal').classList.add('on');
+}
+function renderBmList(){
+  const c = document.getElementById('bmList');
+  if (!bulkMedList.length){ c.innerHTML = `<div class="med-list-empty">薬剤未入力</div>`; return }
+  c.innerHTML = bulkMedList.map((m,i)=>{
+    const unitOpts = UNIT_OPTIONS.map(u=>`<option value="${u}" ${m.unit===u?'selected':''}>${u}</option>`).join('');
+    const routeOpts = ROUTE_OPTIONS.map(r=>`<option value="${r}" ${m.route===r?'selected':''}>${r}</option>`).join('');
+    return `<div class="med-list-row">
+      <input value="${escapeHtml(m.name||'')}" placeholder="薬剤名" oninput="bulkMedList[${i}].name=this.value;updateBmPreview()">
+      <input type="number" step="any" value="${m.dose??''}" placeholder="量" oninput="bulkMedList[${i}].dose=this.value" style="text-align:center">
+      <select onchange="bulkMedList[${i}].unit=this.value">${unitOpts}</select>
+      <select onchange="bulkMedList[${i}].route=this.value">${routeOpts}</select>
+      <button class="del" onclick="removeBmRow(${i})">×</button>
+    </div>`;
+  }).join('');
+}
+function addBulkMedRow(){ bulkMedList.push({name:'',dose:'',unit:'mg',route:'IV'}); renderBmList(); updateBmPreview() }
+function removeBmRow(i){ bulkMedList.splice(i,1); renderBmList(); updateBmPreview() }
+function toggleBmHour(h){
+  if (bmSelectedHours.has(h)) bmSelectedHours.delete(h);
+  else bmSelectedHours.add(h);
+  const btn = document.querySelector(`#bmHours button[data-h="${h}"]`);
+  if (btn) btn.classList.toggle('on', bmSelectedHours.has(h));
+  updateBmPreview();
+}
+function bmPreset(name){
+  bmSelectedHours.clear();
+  const sets = {q4h:[6,10,14,18,22,2], q6h:[6,12,18,0], q8h:[6,14,22], q12h:[8,20], q24h:[8], clear:[]};
+  (sets[name]||[]).forEach(h=>bmSelectedHours.add(h));
+  document.querySelectorAll('#bmHours button').forEach(b=>{
+    b.classList.toggle('on', bmSelectedHours.has(parseInt(b.dataset.h,10)));
+  });
+  updateBmPreview();
+}
+function updateBmPreview(){
+  const validMeds = bulkMedList.filter(m=>m.name && m.name.trim());
+  const hrs = [...bmSelectedHours].sort((a,b)=>a-b);
+  const count = validMeds.length * hrs.length * bmSelectedDays;
+  const hrText = hrs.length ? hrs.map(h=>String(h).padStart(2,'0')+':00').join(' / ') : '時刻未選択';
+  document.getElementById('bmPreview').textContent =
+    `→ ${validMeds.length}薬剤 × ${hrs.length}時刻 × ${bmSelectedDays}日 = ${count}件の予定\n${hrText}`;
+}
+// Day click delegation (separate from schedDays)
+document.addEventListener('click', e=>{
+  const bd = e.target.closest('#bmDays button');
+  if (bd){
+    bmSelectedDays = parseInt(bd.dataset.d,10);
+    document.querySelectorAll('#bmDays button').forEach(b=>b.classList.toggle('on', b===bd));
+    updateBmPreview();
+  }
+});
+function commitBulkMedSchedule(){
+  const validMeds = bulkMedList.filter(m=>m.name && m.name.trim());
+  if (!validMeds.length){ toast('薬剤を1つ以上入力','err'); return }
+  const startDate = document.getElementById('bmDate').value;
+  if (!startDate){ toast('開始日を入力','err'); return }
+  if (bmSelectedHours.size===0){ toast('時刻を1つ以上選択','err'); return }
+  pushUndo('薬剤一括予定追加');
+  const p = state.patients[currentId];
+  p.meds = p.meds||[];
+  const hrs = [...bmSelectedHours].sort((a,b)=>a-b);
+  let count = 0;
+  for (let d=0; d<bmSelectedDays; d++){
+    const dt = new Date(startDate+'T00:00');
+    dt.setDate(dt.getDate()+d);
+    const ds = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    hrs.forEach(h=>{
+      const at = `${ds}T${String(h).padStart(2,'0')}:00`;
+      validMeds.forEach(m=>{
+        const name = m.name.trim();
+        const doseN = (m.dose==null||m.dose==='') ? '' : String(m.dose);
+        const unit = (m.unit||'').trim();
+        const route = (m.route||'').trim();
+        const dose = ((doseN ? `${doseN}${unit}` : '') + (route ? ` ${route}` : '')).trim();
+        if (!p.meds.find(x=>x.at===at && x.name===name && x.dose===dose)){
+          p.meds.push({ at, name, dose, staff:'', done:false });
+          count++;
+        }
+      });
+    });
+  }
+  saveState(); closeModal('bulkMedModal'); renderTxGrid();
+  toast(`${count}件の予定を作成しました`,'ok');
+}
+
+/* ============================================================
+   LAB PHOTOS (FileReader + compression)
+   ============================================================ */
+let currentLabPhotos = [];
+async function addLabPhotos(files){
+  if (!files || !files.length) return;
+  for (const f of files){
+    if (!f.type.startsWith('image/')) continue;
+    try{
+      const b64 = await compressImage(f, 1280);
+      currentLabPhotos.push(b64);
+    }catch(e){ console.warn('photo error',e) }
+  }
+  renderLbPhotos();
+  document.getElementById('lbPhotoInput').value = '';
+}
+function compressImage(file, maxDim){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const scale = Math.min(maxDim/img.width, maxDim/img.height, 1);
+      const w = Math.round(img.width*scale), h = Math.round(img.height*scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+function renderLbPhotos(){
+  const c = document.getElementById('lbPhotos');
+  c.innerHTML = currentLabPhotos.map((p,i)=>`<div class="lab-photo-thumb" style="background-image:url('${p}')" onclick="openPhotoViewer('${i}',true)">
+    <button class="x" onclick="event.stopPropagation();removeLabPhoto(${i})">×</button>
+  </div>`).join('');
+}
+function removeLabPhoto(i){ currentLabPhotos.splice(i,1); renderLbPhotos() }
+function openPhotoViewer(src, isIdx){
+  let url;
+  if (isIdx){ url = currentLabPhotos[parseInt(src,10)] }
+  else url = src;
+  document.getElementById('photoViewerImg').src = url;
+  document.getElementById('photoViewer').classList.remove('hidden');
+}
+function closePhotoViewer(){ document.getElementById('photoViewer').classList.add('hidden') }
+function viewLabPhoto(labId, idx){
+  const p = state.patients[currentId];
+  const l = (p.labs||[]).find(x=>x.id===labId);
+  if (!l || !l.photos || !l.photos[idx]) return;
+  document.getElementById('photoViewerImg').src = l.photos[idx];
+  document.getElementById('photoViewer').classList.remove('hidden');
+}
+
+/* ============================================================
+   VISITS (面会記録)
+   ============================================================ */
+const MOOD_LABELS = {relief:'😊 安心',neutral:'😐 普通',anxiety:'😟 不安',distrust:'🤨 不信感',anger:'😠 怒り',sad:'😢 悲嘆'};
+let editingVisitId = null;
+let visitSelectedMood = '';
+function renderVisits(){
+  const p = state.patients[currentId]; p.visits = p.visits||[];
+  const c = document.getElementById('visitsList');
+  if (!p.visits.length){ c.innerHTML = `<div style="color:var(--muted);padding:14px;text-align:center">面会記録なし。「＋ 面会記録」から追加してください。</div>`; return }
+  const sorted = [...p.visits].sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  c.innerHTML = sorted.map(v=>{
+    const moodLabel = MOOD_LABELS[v.mood] || '—';
+    return `<div class="visit-card mood-${v.mood||''}">
+      <div class="vh">
+        <span class="vh-time">${fmtDT(v.at)}</span>
+        <span class="vh-who">${escapeHtml(v.who||'(面会者不明)')}</span>
+        ${v.mood?`<span class="mood-tag ${v.mood}">${moodLabel}</span>`:''}
+      </div>
+      ${v.staff?`<div style="font-size:11px;color:var(--muted)">対応: ${escapeHtml(v.staff)}</div>`:''}
+      ${v.text?`<div class="vt">${escapeHtml(v.text)}</div>`:''}
+      ${v.gift?`<div class="vg">${escapeHtml(v.gift)}</div>`:''}
+      <div class="vc-act">
+        <button class="btn btn-sm btn-sec" onclick="openVisitEdit('${v.id}')">編集</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openVisitEdit(id){
+  const p = state.patients[currentId]; p.visits = p.visits||[];
+  editingVisitId = id;
+  const v = id ? p.visits.find(x=>x.id===id) : { id:null, at:nowLocalISO(), who:'', staff:p.doctor||'', mood:'', text:'', gift:'' };
+  visitSelectedMood = v.mood||'';
+  document.getElementById('vmTitle').innerHTML = `${id?'面会記録 編集':'＋ 面会記録'} <button class="modal-x" onclick="closeModal('visitModal')">×</button>`;
+  document.getElementById('vmAt').value = v.at||'';
+  document.getElementById('vmWho').value = v.who||'';
+  document.getElementById('vmStaff').value = v.staff||'';
+  document.getElementById('vmText').value = v.text||'';
+  document.getElementById('vmGift').value = v.gift||'';
+  document.querySelectorAll('#vmMood button').forEach(b=>{
+    b.classList.remove('on','relief','neutral','anxiety','distrust','anger','sad');
+    if (b.dataset.m===v.mood) b.classList.add('on', b.dataset.m);
+  });
+  document.getElementById('vmDelBtn').style.display = id?'inline-flex':'none';
+  setTimeout(()=>autoExpand(document.getElementById('vmText')), 50);
+  document.getElementById('visitModal').classList.add('on');
+}
+document.addEventListener('click', e=>{
+  const mb = e.target.closest('#vmMood button');
+  if (mb){
+    visitSelectedMood = mb.dataset.m;
+    document.querySelectorAll('#vmMood button').forEach(b=>{
+      b.className = '';
+      if (b.dataset.m===visitSelectedMood) b.classList.add('on', visitSelectedMood);
+    });
+  }
+});
+function saveVisit(){
+  pushUndo(editingVisitId?'面会編集':'面会追加');
+  const p = state.patients[currentId]; p.visits = p.visits||[];
+  const data = {
+    at: document.getElementById('vmAt').value,
+    who: document.getElementById('vmWho').value.trim(),
+    staff: document.getElementById('vmStaff').value.trim(),
+    text: document.getElementById('vmText').value.trim(),
+    gift: document.getElementById('vmGift').value.trim(),
+    mood: visitSelectedMood,
+  };
+  if (editingVisitId){
+    const v = p.visits.find(x=>x.id===editingVisitId);
+    Object.assign(v, data);
+  } else {
+    p.visits.push({ id: uid('v'), ...data });
+  }
+  saveState(); closeModal('visitModal'); renderVisits(); renderHeaderMeta(); renderStatusBadges(); toast('保存しました','ok');
+}
+function deleteVisit(){
+  if (!editingVisitId) return;
+  if (!confirm('面会記録を削除しますか？')) return;
+  pushUndo('面会削除');
+  const p = state.patients[currentId];
+  p.visits = (p.visits||[]).filter(x=>x.id!==editingVisitId);
+  saveState(); closeModal('visitModal'); renderVisits(); renderHeaderMeta(); renderStatusBadges();
+  toast('削除しました');
+}
+
+/* renderWeek became no-op (week tab removed) */
+function renderWeek(){ /* removed */ }
+
+/* ============================================================
+   NOTIFICATIONS (Pass 4: 30-min cooldown)
+   ============================================================ */
+function refreshNotifUI(){
+  const tgl = document.getElementById('tglNotif'); const st = document.getElementById('notifStatus');
+  if (!('Notification' in window)){ st.textContent='ブラウザ未対応'; tgl.style.opacity=.4; return }
+  const enabled = state.settings.notif && Notification.permission==='granted';
+  tgl.classList.toggle('on', enabled);
+  st.textContent = Notification.permission==='granted' ? (state.settings.notif?'✓ 有効':'許可済（OFF）')
+                  : Notification.permission==='denied' ? '✕ ブロック中' : '未許可';
+}
+function toggleNotif(){
+  if (!('Notification' in window)){ toast('通知非対応','err'); return }
+  if (state.settings.notif){ state.settings.notif=false; saveState(); refreshNotifUI(); return }
+  Notification.requestPermission().then(perm=>{
+    if (perm==='granted'){ state.settings.notif=true; saveState(); refreshNotifUI(); new Notification('入院管理',{body:'通知が有効になりました'}) }
+    else { refreshNotifUI(); toast('許可されませんでした','err') }
+  });
+}
+const NOTIF_COOLDOWN_MS = 30*60*1000; // 30 min
+setInterval(()=>{
+  if (!state.settings.notif || Notification.permission!=='granted') return;
+  const cooldown = JSON.parse(localStorage.getItem('hosprec_notifcd')||'{}');
+  const now = Date.now();
+  Object.values(state.patients).forEach(p=>{
+    const last = lastVital(p);
+    if (last){
+      const al = checkAlertsFor(p, last);
+      if (al.length){
+        const key = 'a_'+p.id+'_'+(last.at||'');
+        if (!cooldown[key] || (now-cooldown[key])>NOTIF_COOLDOWN_MS){
+          cooldown[key]=now; new Notification(`⚠ ${p.name||'患者'}: 基準外`, { body: al.join(' / ') });
+        }
+      }
+    }
+    (p.meds||[]).filter(m=>!m.done && m.at).forEach(m=>{
+      if (new Date(m.at) <= new Date()){
+        const key = 'm_'+p.id+'_'+m.at+'_'+(m.name||'');
+        if (!cooldown[key] || (now-cooldown[key])>NOTIF_COOLDOWN_MS){
+          cooldown[key]=now; new Notification(`⏰ ${p.name||'患者'}: 投薬予定`, { body: `${m.name||''} ${m.dose||''}` });
+        }
+      }
+    });
+    // Planned vitals (TPR check schedule)
+    (p.vitals||[]).filter(v=>v.planned && v.at && [v.temp,v.hr,v.rr,v.spo2].every(x=>x==null)).forEach(v=>{
+      const t = new Date(v.at).getTime();
+      if (t <= now && (now - t) < 3600000){
+        const key = 'pv_'+p.id+'_'+v.at;
+        if (!cooldown[key] || (now-cooldown[key])>NOTIF_COOLDOWN_MS){
+          cooldown[key]=now;
+          new Notification(`📊 ${p.name||'患者'}: TPR予定時刻`, { body: fmtDT(v.at) });
+        }
+      }
+    });
+  });
+  // prune old entries
+  Object.keys(cooldown).forEach(k=>{ if (now-cooldown[k] > 6*60*60*1000) delete cooldown[k] });
+  localStorage.setItem('hosprec_notifcd', JSON.stringify(cooldown));
+}, 60000);
+
+/* ============================================================
+   QUICK RECORD MODAL (Pass 4)
+   ============================================================ */
+function openQuickRecord(){
+  const p = state.patients[currentId];
+  const en = p.enabledFields || ['temp','hr','rr','spo2'];
+  const r = p.range||{};
+  document.getElementById('qkAt').value = nowLocalISO();
+  document.getElementById('qkStaff').value = '';
+  document.getElementById('qkNote').value = '';
+  const ranges = {temp:[r.tempL,r.tempH],hr:[r.hrL,r.hrH],rr:[r.rrL,r.rrH],spo2:[r.spoL,r.spoH]};
+  document.getElementById('qkGrid').innerHTML = en.map(k=>{
+    const f = FIELDS_DEF.find(x=>x.k===k); if (!f) return '';
+    const rg = ranges[k]||[];
+    const rngText = rg[0]!=null ? `${rg[0]}〜${rg[1]} ${f.unit}` : f.unit;
+    return `<div class="qcell" data-k="${k}">
+      <div class="ql"><span>${f.label}</span><span class="qr">${rngText}</span></div>
+      <input type="${k==='bp'||k==='gcs'?'text':'number'}" step="any" id="qk_${k}" oninput="qkValidate('${k}')">
+    </div>`;
+  }).join('');
+  document.getElementById('quickModal').classList.add('on');
+  // focus first field
+  setTimeout(()=>{ const first = document.querySelector('#qkGrid input'); if (first) first.focus() }, 100);
+}
+function qkValidate(k){
+  const p = state.patients[currentId]; const r = p.range||{};
+  const m = {temp:[r.tempL,r.tempH],hr:[r.hrL,r.hrH],rr:[r.rrL,r.rrH],spo2:[r.spoL,r.spoH]};
+  const rg = m[k]; if (!rg) return;
+  const v = num(document.getElementById('qk_'+k).value);
+  const cell = document.querySelector(`.qcell[data-k="${k}"]`);
+  if (v!=null && rg[0]!=null && (v<rg[0]||v>rg[1])) cell.classList.add('abn');
+  else cell.classList.remove('abn');
+}
+function saveQuickRecord(){
+  const p = state.patients[currentId]; const at = document.getElementById('qkAt').value;
+  const staff = document.getElementById('qkStaff').value.trim();
+  const note = document.getElementById('qkNote').value.trim();
+  if (!at){ toast('日時を入力してください','err'); return }
+  const en = p.enabledFields || ['temp','hr','rr','spo2'];
+  const rec = { at, staff };
+  let hasValue = false;
+  en.forEach(k=>{
+    const el = document.getElementById('qk_'+k); if (!el) return;
+    const v = el.value;
+    if (v!=='' && v!=null){
+      rec[k] = (k==='bp'||k==='gcs') ? v : num(v);
+      hasValue = true;
+    }
+  });
+  if (!hasValue){ toast('値を入力してください','err'); return }
+  pushUndo('クイック記録');
+  p.vitals = p.vitals||[]; p.vitals.unshift(rec);
+  if (note){
+    p.notes = p.notes||[]; p.notes.unshift({ at, staff, activity:'', pain:'', text:note });
+  }
+  saveState(); closeModal('quickModal');
+  renderVitalsGrid(); renderIoGrid(); renderHeaderVitals(); renderNotes(); renderAlerts(); updateTabAlertDots();
+  if (document.querySelector('.tab.on')?.dataset.tab==='handover') renderHandover();
+  toast('記録しました','ok');
+}
+
+/* ============================================================
+   DISCHARGE SUMMARY (Pass 5)
+   ============================================================ */
+function genDischarge(){
+  const p = state.patients[currentId];
+  const admitDate = p.admittedAt ? new Date(p.admittedAt) : null;
+  const today = new Date();
+  const days = admitDate ? Math.floor((today.getTime()-admitDate.getTime())/86400000)+1 : '?';
+  const vitals = p.vitals||[];
+  const firstV = vitals.length ? [...vitals].sort((a,b)=>(a.at||'').localeCompare(b.at||''))[0] : null;
+  const lastV = lastVital(p);
+  const meds = p.meds||[];
+  const medNames = [...new Set(meds.map(m=>m.name).filter(Boolean))];
+  const labs = (p.labs||[]).filter(l=>l.status==='reported');
+  const abnLabs = labs.filter(l=>(l.result||'').match(/[↑↓]/));
+  const wts = (p.weights||[]).map(w=>w.w).filter(x=>x!=null);
+  const wtMin = wts.length?Math.min(...wts):null, wtMax = wts.length?Math.max(...wts):null;
+
+  let text = '';
+  text += `【退院サマリ】\n`;
+  text += `─────────────────────────\n`;
+  text += `患者: ${p.name||'(無名)'} (${p.species||''}${p.breed?' '+p.breed:''} ${p.sex||''} ${p.age||''})\n`;
+  text += `ID: ${p.patientId||'—'}\n`;
+  text += `主治医: ${p.doctor||'—'}\n`;
+  text += `入院期間: ${p.admittedAt||'?'} 〜 ${todayISO()} （${days}日間）\n`;
+  text += `\n■ 診断 / 主訴\n${p.diagnosis||'—'}\n`;
+  text += `\n■ バイタル経過\n`;
+  if (firstV) text += `入院時: T${firstV.temp??'—'}℃ HR${firstV.hr??'—'} RR${firstV.rr??'—'} SpO₂${firstV.spo2??'—'}%\n`;
+  if (lastV)  text += `退院時: T${lastV.temp??'—'}℃ HR${lastV.hr??'—'} RR${lastV.rr??'—'} SpO₂${lastV.spo2??'—'}%\n`;
+  text += `\n■ 体重\n`;
+  if (wts.length){ text += `${wtMin}kg 〜 ${wtMax}kg（現在 ${p.bodyWeight||'—'}kg）\n` } else text += '—\n';
+  // food/stool trajectory
+  const io = (p.inout||[]).sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+  if (io.length){
+    const firstFood = io.find(x=>x.foodPct!=null);
+    const lastFood  = [...io].reverse().find(x=>x.foodPct!=null);
+    const stools = io.filter(x=>x.stoolScore).map(x=>x.stoolScore);
+    text += `\n■ In/Out\n`;
+    if (firstFood && lastFood) text += `食事摂取率: 入院時 ${firstFood.foodPct}% → 退院時 ${lastFood.foodPct}%\n`;
+    if (stools.length) text += `便スコア推移: ${stools[0]} → ${stools[stools.length-1]}（最高${Math.max(...stools)}・最低${Math.min(...stools)}）\n`;
+  }
+  text += `\n■ 治療内容\n`;
+  if (medNames.length) text += `投薬: ${medNames.join(' / ')}\n`;
+  const fls = [...new Set((p.fluids||[]).map(f=>f.product).filter(Boolean))];
+  if (fls.length) text += `輸液: ${fls.join(' / ')}\n`;
+  if (labs.length){
+    text += `\n■ 検査結果（実施 ${labs.length}件）\n`;
+    if (abnLabs.length){
+      text += `異常所見あり ${abnLabs.length}件:\n`;
+      abnLabs.slice(0,5).forEach(l=>{ text += `  ${fmtD(l.at)} ${l.type}/${l.items}\n    ${(l.result||'').split('\n').slice(0,3).join('\n    ')}\n` });
+    } else text += `異常所見なし\n`;
+  }
+  // last note as plan
+  const notes = (p.notes||[]).sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  if (notes.length){
+    text += `\n■ 最終所見\n${(notes[0].text||'—').slice(0,500)}\n`;
+  }
+  text += `\n─────────────────────────\n生成日時: ${fmtDT(nowLocalISO())}\n`;
+
+  document.getElementById('dsText').value = text;
+  document.getElementById('dsModal').classList.add('on');
+}
+function copyDischarge(){
+  const t = document.getElementById('dsText'); t.select(); document.execCommand('copy');
+  toast('コピーしました','ok');
+}
+
+/* ============================================================
+   EXPORT / IMPORT
+   ============================================================ */
+function exportAll(){ download(`hosprec_all_${todayISO()}.json`, JSON.stringify(state, null, 2)); toast('全データをエクスポートしました','ok') }
+function exportPatient(){ if (!currentId) return; const p = state.patients[currentId];
+  download(`hosprec_${p.name||'patient'}_${todayISO()}.json`, JSON.stringify({ patients:{ [currentId]: p } }, null, 2)); toast('エクスポートしました','ok') }
+function download(name, content){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content], {type:'application/json'}));
+  a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function importPrompt(){ document.getElementById('importText').value=''; document.getElementById('importModal').classList.add('on') }
+function closeModal(id){ document.getElementById(id).classList.remove('on') }
+function doImport(){
+  const txt = document.getElementById('importText').value.trim();
+  if (!txt){ toast('JSONを貼り付けてください','err'); return }
+  try{
+    const data = JSON.parse(txt);
+    if (!data.patients){ toast('形式が違います','err'); return }
+    let n = 0;
+    Object.entries(data.patients).forEach(([id, p])=>{ const nid = state.patients[id] ? uid('p') : id; state.patients[nid] = { ...p, id: nid }; n++ });
+    saveState(); renderList(); closeModal('importModal'); toast(`${n}件をインポートしました`,'ok');
+  }catch(e){ toast('JSONの解析に失敗','err') }
+}
+
+/* ============================================================
+   DISCHARGE / DELETE
+   ============================================================ */
+function dischargePatient(){
+  if (!currentId) return; const p = state.patients[currentId];
+  if (!confirm(`「${p.name||'(無名)'}」を退院処理しますか？`)) return;
+  state.archived = state.archived||{}; state.archived[currentId] = { ...p, dischargedAt: nowLocalISO() };
+  delete state.patients[currentId]; saveState(); showList(); toast('退院処理しました','ok');
+}
+function deletePatient(){
+  if (!currentId) return; const p = state.patients[currentId];
+  if (!confirm(`「${p.name||'(無名)'}」を完全削除しますか？`)) return;
+  delete state.patients[currentId]; saveState(); showList(); toast('削除しました');
+}
+
+/* ============================================================
+   AUTO-SAVE
+   ============================================================ */
+const INFO_IDS = ['iPid','iName','iBreed','iBirthday','iWeight','iAdmit','iDoc','iCondition','iDx','iGoal',
+ 'rTempL','rTempH','rHrL','rHrH','rRrL','rRrH','rSpL','rSpH'];
+document.addEventListener('change', (e)=>{
+  if (e.target && INFO_IDS.includes(e.target.id) && currentId){
+    pushUndo('情報編集');
+    saveCurrent(false);
+  }
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+renderList(); refreshNotifUI();
+</script>
+</body>
+</html>

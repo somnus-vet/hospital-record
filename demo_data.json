@@ -1,0 +1,231 @@
+{
+  "patients": {
+    "p_demo_pochi": {
+      "id": "p_demo_pochi",
+      "patientId": "20260522-001",
+      "name": "ポチ",
+      "species": "犬",
+      "breed": "トイプードル",
+      "age": "5歳",
+      "sex": "♂(去)",
+      "bodyWeight": 4.3,
+      "admittedAt": "2026-05-22",
+      "doctor": "小澤",
+      "diagnosis": "急性膵炎\n5/22 早朝より反復性嘔吐、活動性低下、食欲廃絶にて来院。\ncPL陽性、CRP↑、エコーで膵腫大あり。輸液・制吐・鎮痛・抗菌・栄養管理目的で入院。",
+      "range": { "tempL": 38.0, "tempH": 39.2, "hrL": 70, "hrH": 140, "rrL": 15, "rrH": 35, "spoL": 95, "spoH": 100 },
+      "enabledFields": ["temp", "hr", "rr", "spo2"],
+      "status": { "iv": true, "mon": true },
+
+      "labs": [
+        {
+          "id": "l_demo_001", "at": "2026-05-22T08:30",
+          "type": "血液", "items": "CBC, 生化(肝腎電解質), CRP, cPL, ALT, Lipase",
+          "urgent": true, "external": false, "status": "reported",
+          "doctor": "小澤",
+          "result": "WBC↑ 18500 (4000-15000)\nNeut↑ 85%\nCRP↑ 7.2 mg/dL (<1.0)\ncPL↑ 陽性 (>400)\nALT↑ 180 U/L (10-100)\nLipase↑↑ 850 U/L (10-160)\nNa/K/Cl 正常\nBUN 28 (やや脱水傾向)",
+          "note": "膵炎を強く示唆"
+        },
+        {
+          "id": "l_demo_002", "at": "2026-05-22T09:30",
+          "type": "画像", "items": "腹部エコー",
+          "urgent": false, "external": false, "status": "reported",
+          "doctor": "小澤",
+          "result": "膵腫大あり\n膵周囲高エコー領域\n腸間膜の浮腫像\n胆嚢・肝臓・腎臓に著変なし",
+          "note": "急性膵炎の所見"
+        },
+        {
+          "id": "l_demo_003", "at": "2026-05-22T10:00",
+          "type": "尿", "items": "尿比重, 尿pH, dipstick",
+          "urgent": false, "external": false, "status": "reported",
+          "doctor": "小澤",
+          "result": "SG 1.045 (濃縮尿)\npH 6.0\n蛋白(-) 糖(-) ケトン(-)\n潜血(-)",
+          "note": "脱水所見と一致"
+        },
+        {
+          "id": "l_demo_004", "at": "2026-05-24T08:00",
+          "type": "血液", "items": "CBC, 生化, CRP",
+          "urgent": false, "external": false, "status": "reported",
+          "doctor": "小澤",
+          "result": "WBC↑ 14000 (改善傾向)\nCRP↑ 3.5 mg/dL (低下)\nALT 95 U/L (正常化)\nLipase↑ 320 U/L (低下傾向)\nBUN 18 (正常)",
+          "note": "炎症マーカー改善"
+        },
+        {
+          "id": "l_demo_005", "at": "2026-05-26T08:00",
+          "type": "血液", "items": "CRP, 生化",
+          "urgent": false, "external": false, "status": "reported",
+          "doctor": "小澤",
+          "result": "CRP 1.2 mg/dL (ほぼ正常化)\nALT 65 U/L (正常)\nLipase 180 U/L (正常上限)\n電解質正常",
+          "note": "経口摂取への移行妥当"
+        },
+        {
+          "id": "l_demo_006", "at": "2026-05-28T08:00",
+          "type": "血液", "items": "CBC, 生化, CRP, cPL (退院前)",
+          "urgent": false, "external": false, "status": "reported",
+          "doctor": "小澤",
+          "result": "WBC 10500 (正常)\nCRP 0.8 mg/dL (正常)\ncPL 280 (正常域)\nALT 45 / Lipase 120 (全て正常)",
+          "note": "退院判定OK"
+        },
+        {
+          "id": "l_demo_007", "at": "2026-05-29T08:00",
+          "type": "血液", "items": "退院後フォロー: CBC, 生化, CRP",
+          "urgent": false, "external": false, "status": "collected",
+          "doctor": "小澤", "result": "", "note": "外注検体送付済、結果は明日"
+        },
+        {
+          "id": "l_demo_008", "at": "2026-05-29T09:00",
+          "type": "便", "items": "Giardia抗原, 寄生虫検査",
+          "urgent": false, "external": true, "status": "awaiting",
+          "doctor": "小澤", "result": "", "note": "外注ラボへ発送済"
+        },
+        {
+          "id": "l_demo_009", "at": "2026-05-29T10:00",
+          "type": "画像", "items": "腹部エコー再評価",
+          "urgent": false, "external": false, "status": "ordered",
+          "doctor": "小澤", "result": "", "note": "退院前最終確認"
+        }
+      ],
+
+      "vitals": [
+        {"at":"2026-05-22T06:00","temp":39.8,"hr":140,"rr":36,"spo2":96,"staff":"看護A"},
+        {"at":"2026-05-22T10:00","temp":39.6,"hr":135,"rr":34,"spo2":97,"staff":"看護A"},
+        {"at":"2026-05-22T14:00","temp":39.5,"hr":138,"rr":32,"spo2":97,"staff":"看護B"},
+        {"at":"2026-05-22T18:00","temp":39.4,"hr":132,"rr":30,"spo2":98,"staff":"看護B"},
+        {"at":"2026-05-22T22:00","temp":39.3,"hr":128,"rr":28,"spo2":98,"staff":"看護C"},
+
+        {"at":"2026-05-23T02:00","temp":39.2,"hr":125,"rr":26,"spo2":98,"staff":"看護C"},
+        {"at":"2026-05-23T06:00","temp":39.3,"hr":130,"rr":28,"spo2":97,"staff":"看護A"},
+        {"at":"2026-05-23T10:00","temp":39.1,"hr":122,"rr":26,"spo2":98,"staff":"看護A"},
+        {"at":"2026-05-23T14:00","temp":39.0,"hr":118,"rr":24,"spo2":98,"staff":"看護B"},
+        {"at":"2026-05-23T18:00","temp":38.9,"hr":115,"rr":22,"spo2":98,"staff":"看護B"},
+        {"at":"2026-05-23T22:00","temp":38.8,"hr":112,"rr":22,"spo2":98,"staff":"看護C"},
+
+        {"at":"2026-05-24T06:00","temp":38.9,"hr":118,"rr":24,"spo2":98,"staff":"看護A"},
+        {"at":"2026-05-24T10:00","temp":38.8,"hr":115,"rr":22,"spo2":99,"staff":"看護A"},
+        {"at":"2026-05-24T14:00","temp":38.7,"hr":110,"rr":20,"spo2":98,"staff":"看護B"},
+        {"at":"2026-05-24T18:00","temp":38.7,"hr":108,"rr":20,"spo2":99,"staff":"看護B"},
+        {"at":"2026-05-24T22:00","temp":38.6,"hr":105,"rr":20,"spo2":99,"staff":"看護C"},
+
+        {"at":"2026-05-25T06:00","temp":38.7,"hr":110,"rr":22,"spo2":98,"staff":"看護A"},
+        {"at":"2026-05-25T10:00","temp":38.6,"hr":108,"rr":20,"spo2":99,"staff":"看護A"},
+        {"at":"2026-05-25T14:00","temp":38.5,"hr":105,"rr":18,"spo2":99,"staff":"看護B"},
+        {"at":"2026-05-25T18:00","temp":38.5,"hr":102,"rr":18,"spo2":99,"staff":"看護B"},
+        {"at":"2026-05-25T22:00","temp":38.4,"hr":100,"rr":16,"spo2":99,"staff":"看護C"},
+
+        {"at":"2026-05-26T06:00","temp":38.5,"hr":105,"rr":18,"spo2":99,"staff":"看護A"},
+        {"at":"2026-05-26T10:00","temp":38.4,"hr":100,"rr":18,"spo2":99,"staff":"看護A"},
+        {"at":"2026-05-26T14:00","temp":38.4,"hr":98,"rr":16,"spo2":99,"staff":"看護B"},
+        {"at":"2026-05-26T18:00","temp":38.3,"hr":95,"rr":16,"spo2":99,"staff":"看護B"},
+        {"at":"2026-05-26T22:00","temp":38.3,"hr":92,"rr":16,"spo2":99,"staff":"看護C"},
+
+        {"at":"2026-05-27T06:00","temp":38.4,"hr":98,"rr":18,"spo2":99,"staff":"看護A"},
+        {"at":"2026-05-27T10:00","temp":38.3,"hr":95,"rr":16,"spo2":99,"staff":"看護A"},
+        {"at":"2026-05-27T14:00","temp":38.3,"hr":92,"rr":16,"spo2":99,"staff":"看護B"},
+        {"at":"2026-05-27T18:00","temp":38.2,"hr":90,"rr":15,"spo2":99,"staff":"看護B"},
+        {"at":"2026-05-27T22:00","temp":38.2,"hr":88,"rr":14,"spo2":99,"staff":"看護C"},
+
+        {"at":"2026-05-28T06:00","temp":38.3,"hr":92,"rr":16,"spo2":99,"staff":"看護A"},
+        {"at":"2026-05-28T10:00","temp":38.2,"hr":88,"rr":15,"spo2":99,"staff":"看護A"},
+        {"at":"2026-05-28T14:00","temp":38.2,"hr":85,"rr":14,"spo2":99,"staff":"看護B"}
+      ],
+
+      "inout": [
+        {"at":"2026-05-22T08:00","foodType":"絶食 (NPO)","foodPct":0,"water":0,"urine":null,"stoolScore":null,"stoolPresent":"","note":"嘔吐2回（黄色液体）"},
+        {"at":"2026-05-22T14:00","foodType":"絶食","foodPct":0,"water":0,"urine":30,"stoolScore":null,"stoolPresent":"","note":"嘔吐1回"},
+        {"at":"2026-05-22T20:00","foodType":"絶食","foodPct":0,"water":0,"urine":40,"stoolScore":null,"stoolPresent":"","note":""},
+
+        {"at":"2026-05-23T08:00","foodType":"絶食","foodPct":0,"water":0,"urine":50,"stoolScore":7,"stoolPresent":"○","note":"水様便、黄色"},
+        {"at":"2026-05-23T14:00","foodType":"絶食","foodPct":0,"water":0,"urine":60,"stoolScore":7,"stoolPresent":"○","note":"水様便継続"},
+        {"at":"2026-05-23T20:00","foodType":"絶食","foodPct":0,"water":0,"urine":80,"stoolScore":null,"stoolPresent":"×","note":"嘔吐なし"},
+
+        {"at":"2026-05-24T08:00","foodType":"i/d缶 5g","foodPct":20,"water":20,"urine":90,"stoolScore":6,"stoolPresent":"○","note":"少量給餌開始、嘔吐なし"},
+        {"at":"2026-05-24T13:00","foodType":"i/d缶 5g","foodPct":20,"water":30,"urine":100,"stoolScore":null,"stoolPresent":"×","note":""},
+        {"at":"2026-05-24T18:00","foodType":"i/d缶 5g","foodPct":20,"water":30,"urine":100,"stoolScore":6,"stoolPresent":"○","note":"軟便、黄褐色"},
+
+        {"at":"2026-05-25T08:00","foodType":"i/d缶 10g","foodPct":40,"water":40,"urine":120,"stoolScore":5,"stoolPresent":"○","note":""},
+        {"at":"2026-05-25T13:00","foodType":"i/d缶 12g","foodPct":50,"water":50,"urine":130,"stoolScore":null,"stoolPresent":"×","note":""},
+        {"at":"2026-05-25T18:00","foodType":"i/d缶 12g","foodPct":50,"water":60,"urine":150,"stoolScore":5,"stoolPresent":"○","note":"軟便"},
+
+        {"at":"2026-05-26T08:00","foodType":"i/d缶 15g","foodPct":60,"water":70,"urine":150,"stoolScore":4,"stoolPresent":"○","note":"正常便に近づく"},
+        {"at":"2026-05-26T13:00","foodType":"i/d缶 18g","foodPct":70,"water":80,"urine":180,"stoolScore":null,"stoolPresent":"×","note":""},
+        {"at":"2026-05-26T18:00","foodType":"i/d缶 18g","foodPct":70,"water":90,"urine":180,"stoolScore":4,"stoolPresent":"○","note":""},
+
+        {"at":"2026-05-27T08:00","foodType":"i/d缶 20g","foodPct":80,"water":80,"urine":200,"stoolScore":4,"stoolPresent":"○","note":"形状良好"},
+        {"at":"2026-05-27T13:00","foodType":"i/d缶 22g","foodPct":90,"water":100,"urine":210,"stoolScore":null,"stoolPresent":"×","note":""},
+        {"at":"2026-05-27T18:00","foodType":"i/d缶 22g","foodPct":90,"water":110,"urine":220,"stoolScore":4,"stoolPresent":"○","note":""},
+
+        {"at":"2026-05-28T08:00","foodType":"i/d缶 25g","foodPct":100,"water":100,"urine":230,"stoolScore":3,"stoolPresent":"○","note":"良好"},
+        {"at":"2026-05-28T13:00","foodType":"i/d缶 25g","foodPct":100,"water":110,"urine":240,"stoolScore":null,"stoolPresent":"×","note":"退院前評価OK"}
+      ],
+
+      "fluids": [
+        {"at":"2026-05-22T07:00","product":"ラクテック","rate":12,"total":204,"note":"4×維持量(60mL/kg/day) + 脱水補正"},
+        {"at":"2026-05-23T07:00","product":"ラクテック","rate":10,"total":240,"note":"脱水改善、減量"},
+        {"at":"2026-05-24T07:00","product":"ラクテック","rate":8,"total":192,"note":""},
+        {"at":"2026-05-25T07:00","product":"ラクテック","rate":6,"total":144,"note":"飲水量増加に伴い減量"},
+        {"at":"2026-05-26T07:00","product":"ラクテック","rate":4,"total":96,"note":""},
+        {"at":"2026-05-27T07:00","product":"ラクテック","rate":2,"total":48,"note":"漸減・終了予定"},
+        {"at":"2026-05-28T07:00","product":"輸液終了","rate":0,"total":0,"note":"飲水良好のため抜針"}
+      ],
+
+      "meds": [
+        {"at":"2026-05-22T07:00","name":"マロピタント","dose":"0.4mg SC","staff":"小澤","done":true},
+        {"at":"2026-05-22T08:00","name":"セファゾリン","dose":"100mg IV","staff":"看護A","done":true},
+        {"at":"2026-05-22T08:00","name":"ブトルファノール","dose":"0.8mg IV","staff":"看護A","done":true},
+        {"at":"2026-05-22T14:00","name":"ブトルファノール","dose":"0.8mg IV","staff":"看護B","done":true},
+        {"at":"2026-05-22T16:00","name":"セファゾリン","dose":"100mg IV","staff":"看護B","done":true},
+        {"at":"2026-05-22T20:00","name":"ブトルファノール","dose":"0.8mg IV","staff":"看護C","done":true},
+
+        {"at":"2026-05-23T00:00","name":"セファゾリン","dose":"100mg IV","staff":"看護C","done":true},
+        {"at":"2026-05-23T07:00","name":"マロピタント","dose":"0.4mg SC","staff":"看護A","done":true},
+        {"at":"2026-05-23T08:00","name":"セファゾリン","dose":"100mg IV","staff":"看護A","done":true},
+        {"at":"2026-05-23T14:00","name":"ブトルファノール","dose":"0.8mg IV","staff":"看護B","done":true},
+        {"at":"2026-05-23T16:00","name":"セファゾリン","dose":"100mg IV","staff":"看護B","done":true},
+
+        {"at":"2026-05-24T00:00","name":"セファゾリン","dose":"100mg IV","staff":"看護C","done":true},
+        {"at":"2026-05-24T07:00","name":"マロピタント","dose":"0.4mg SC","staff":"看護A","done":true},
+        {"at":"2026-05-24T08:00","name":"セファゾリン","dose":"100mg IV","staff":"看護A","done":true},
+        {"at":"2026-05-24T16:00","name":"セファゾリン","dose":"100mg IV","staff":"看護B","done":true},
+
+        {"at":"2026-05-25T00:00","name":"セファゾリン","dose":"100mg IV","staff":"看護C","done":true},
+        {"at":"2026-05-25T08:00","name":"セファゾリン","dose":"100mg IV","staff":"看護A","done":true},
+        {"at":"2026-05-25T08:00","name":"ファモチジン","dose":"2mg PO","staff":"看護A","done":true},
+        {"at":"2026-05-25T16:00","name":"セファゾリン","dose":"100mg IV","staff":"看護B","done":true},
+        {"at":"2026-05-25T20:00","name":"ファモチジン","dose":"2mg PO","staff":"看護C","done":true},
+
+        {"at":"2026-05-26T00:00","name":"セファゾリン","dose":"100mg IV","staff":"看護C","done":true},
+        {"at":"2026-05-26T08:00","name":"セファゾリン","dose":"100mg IV","staff":"看護A","done":true},
+        {"at":"2026-05-26T08:00","name":"ファモチジン","dose":"2mg PO","staff":"看護A","done":true},
+        {"at":"2026-05-26T16:00","name":"セファゾリン","dose":"100mg IV","staff":"看護B","done":true},
+        {"at":"2026-05-26T20:00","name":"ファモチジン","dose":"2mg PO","staff":"看護C","done":true},
+
+        {"at":"2026-05-27T08:00","name":"アモキシシリン","dose":"50mg PO","staff":"看護A","done":true},
+        {"at":"2026-05-27T08:00","name":"ファモチジン","dose":"2mg PO","staff":"看護A","done":true},
+        {"at":"2026-05-27T20:00","name":"アモキシシリン","dose":"50mg PO","staff":"看護C","done":true},
+        {"at":"2026-05-27T20:00","name":"ファモチジン","dose":"2mg PO","staff":"看護C","done":true},
+
+        {"at":"2026-05-28T08:00","name":"アモキシシリン","dose":"50mg PO","staff":"看護A","done":true},
+        {"at":"2026-05-28T08:00","name":"ファモチジン","dose":"2mg PO","staff":"看護A","done":true},
+        {"at":"2026-05-28T20:00","name":"アモキシシリン","dose":"50mg PO (退院処方)","staff":"","done":false},
+        {"at":"2026-05-28T20:00","name":"ファモチジン","dose":"2mg PO (退院処方)","staff":"","done":false}
+      ],
+
+      "notes": [
+        {"at":"2026-05-22T08:00","staff":"小澤","activity":"低下(沈鬱)","pain":"中等度(腹部圧痛+)","text":"反復性嘔吐、脱水8%、腹部触診で前腹部に強い疼痛反応。cPL陽性。輸液・制吐・鎮痛開始。NPO継続。"},
+        {"at":"2026-05-22T20:00","staff":"看護C","activity":"低下","pain":"軽度〜中等度","text":"嘔吐は午後14時の1回のみ。鎮痛後は丸まって休む。輸液問題なし。"},
+        {"at":"2026-05-23T08:00","staff":"小澤","activity":"やや改善","pain":"軽度","text":"嘔吐消失。水様便あり。脱水改善傾向。輸液速度を10mL/hに減量。"},
+        {"at":"2026-05-24T08:00","staff":"小澤","activity":"改善","pain":"なし〜軽度","text":"i/d缶 5gを少量ずつ給餌開始。嘔吐なし、自発的に食べる意欲あり。"},
+        {"at":"2026-05-25T13:00","staff":"看護B","activity":"良好","pain":"なし","text":"散歩希望のサインあり。給餌量50%まで増量。便も形状改善。"},
+        {"at":"2026-05-26T18:00","staff":"看護B","activity":"良好","pain":"なし","text":"自発的に飲水、排尿良好。便はスコア4(正常)。経口抗菌薬への切替を検討。"},
+        {"at":"2026-05-27T08:00","staff":"小澤","activity":"良好","pain":"なし","text":"バイタル安定、食事100%摂取可能。輸液漸減、経口抗菌薬(アモキシシリン)へ切替。明日退院方針。"},
+        {"at":"2026-05-28T08:00","staff":"小澤","activity":"良好","pain":"なし","text":"退院前最終評価。バイタル基準内、食欲・排泄良好。本日午後退院予定。退院処方: アモキシシリン×7日、ファモチジン×7日、i/d缶継続。"}
+      ],
+
+      "weights": [
+        {"at":"2026-05-22T08:00","w":4.2},
+        {"at":"2026-05-24T08:00","w":4.0},
+        {"at":"2026-05-26T08:00","w":4.1},
+        {"at":"2026-05-28T08:00","w":4.3}
+      ]
+    }
+  }
+}
