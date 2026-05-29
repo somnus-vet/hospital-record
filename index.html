@@ -3618,17 +3618,48 @@ function finishRound(){
   closeModal('roundModal');
   roundState = null;
 
-  // Force full refresh
+  // Force full refresh + auto-switch + auto-scroll to show newest column
   try {
     loadIntoForm();
-    const active = document.querySelector('.tab.on')?.dataset.tab;
-    if (active) switchTab(active);
+    const currentTab = document.querySelector('.tab.on')?.dataset.tab;
+    // 申し送り/メモ/設定 等から、入力した内容のタブに自動遷移
+    let goto = currentTab;
+    if ((hasVital || hasIo) && !['vitals','inout','tx'].includes(currentTab)){
+      goto = 'vitals';
+    } else if (medDone > 0 && currentTab !== 'tx'){
+      goto = 'tx';
+    }
+    if (goto) switchTab(goto);
+    // 横軸グリッドを右端（最新時刻）までスクロール
+    setTimeout(()=>{
+      ['vGridScroll','ioGridScroll','txGridScroll'].forEach(id=>{
+        const s = document.getElementById(id);
+        if (s){
+          s.scrollLeft = s.scrollWidth;
+          // 列をフラッシュハイライト
+          const tbl = s.querySelector('.hgrid-tbl');
+          if (tbl){
+            const headRow = tbl.querySelector('thead tr');
+            if (headRow){
+              const cells = headRow.querySelectorAll('th.time');
+              const lastCell = cells[cells.length-2]; // 最後の add-col の手前
+              if (lastCell){
+                lastCell.style.transition = 'background .4s';
+                const orig = lastCell.style.background;
+                lastCell.style.background = '#fde047';
+                setTimeout(()=>{ lastCell.style.background = orig }, 1200);
+              }
+            }
+          }
+        }
+      });
+    }, 80);
   } catch(e){ console.error('[Round] refresh error:', e) }
 
   const total = vCount + ioCount + medDone + (noteAdded?1:0);
   const summary = total === 0
     ? '※ 何も記録されませんでした\n値を入力してから完了してください'
-    : `バイタル${vCount} / I/O${ioCount} / 投薬${medDone}件 / メモ${noteAdded?'1':'0'}`;
+    : `バイタル${vCount} / I/O${ioCount} / 投薬${medDone}件 / メモ${noteAdded?'1':'0'}\n→ 自動で最新列までスクロールしました`;
   toast(`✅ ラウンド完了 ${fmtDT(at)}${staff?' '+staff:''}\n${summary}`, total===0?'err':'ok');
 }
 
