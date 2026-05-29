@@ -633,14 +633,16 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 .legend-section{font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin:10px 0 4px;padding-bottom:4px;border-bottom:2px solid var(--border)}
 
 /* Bulk med schedule rows: name / dose / unit / route / delete */
-.med-list-row{display:grid;grid-template-columns:1fr 60px 70px 72px 24px;gap:5px;align-items:center;background:var(--bg-soft);border-radius:6px;padding:5px 7px;margin-bottom:5px;border:1px solid var(--border-soft)}
-.med-list-row input,.med-list-row select{border:none;background:transparent;font-size:13px;padding:5px 4px;font-family:inherit;width:100%;min-width:0;font-feature-settings:'tnum'}
-.med-list-row input:focus,.med-list-row select:focus{outline:1.5px solid var(--blue);border-radius:3px;background:#fff}
-.med-list-row select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%237a8aa5' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;padding-right:14px}
-.med-list-row .del{background:none;border:none;color:#c5cad3;font-size:16px;cursor:pointer;padding:2px 4px}
-.med-list-row .del:hover{color:var(--red)}
-.med-list-row .col-hdr{font-size:10px;color:var(--muted);font-weight:700;padding:0 4px;text-transform:uppercase;letter-spacing:.4px}
-.med-list-head{display:grid;grid-template-columns:1fr 60px 70px 72px 24px;gap:5px;padding:0 7px 4px;font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.med-list-row{display:grid;grid-template-columns:minmax(76px,1fr) 46px 50px 54px 60px 22px;gap:0;align-items:stretch;background:#fff;border-radius:6px;margin-bottom:5px;border:1.5px solid var(--border);overflow:hidden}
+.med-list-row > input,.med-list-row > select{border:none;border-left:1px solid var(--border);background:transparent;font-size:13px;padding:9px 5px;font-family:inherit;width:100%;min-width:0;font-feature-settings:'tnum'}
+.med-list-row > input:first-child{border-left:none}
+.med-list-row > input:focus,.med-list-row > select:focus{outline:none;background:#eaf2fb;box-shadow:inset 0 0 0 2px var(--blue);position:relative;z-index:1}
+.med-list-row > select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%237a8aa5' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 3px center;padding-right:11px}
+.med-list-row > .del{border:none;border-left:1px solid var(--border);background:#fafbfd;color:#9aa3b8;font-size:15px;cursor:pointer;padding:4px}
+.med-list-row > .del:active{color:var(--red);background:#fdebe7}
+.med-list-head{display:grid;grid-template-columns:minmax(76px,1fr) 46px 50px 54px 60px 22px;gap:0;padding:0;font-size:9.5px;color:var(--muted);font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.med-list-head > span{padding:4px 5px;border-left:1px solid var(--border-soft);text-align:center}
+.med-list-head > span:first-child{border-left:none;text-align:left;padding-left:8px}
 .med-list-empty{padding:10px;text-align:center;color:var(--muted);font-size:12px;font-style:italic}
 
 /* Fluid quick-add preset grid */
@@ -675,8 +677,8 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 .lab-queue-row .del{background:none;border:none;color:#c5cad3;font-size:14px;cursor:pointer;padding:2px 6px}
 .lab-queue-empty{text-align:center;color:var(--muted);font-size:11px;padding:6px;font-style:italic}
 @media (max-width:520px){
-  .med-list-row,.med-list-head{grid-template-columns:1fr 50px 56px 62px 22px;gap:3px}
-  .med-list-row input,.med-list-row select{font-size:12px;padding:5px 2px}
+  .med-list-row,.med-list-head{grid-template-columns:minmax(64px,1fr) 40px 44px 48px 52px 20px}
+  .med-list-row > input,.med-list-row > select{font-size:11.5px;padding:7px 3px}
 }
 
 /* ============================================================
@@ -961,6 +963,7 @@ body.printing #printView{display:block !important;position:relative;background:#
           <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">給餌方法</span>
             <div class="btn-group" id="iFeedMethodBtns" style="flex:1">
               <button data-v="bowl">🍽 器</button>
+              <button data-v="bowl_high">🍽⬆ 器(高め)</button>
               <button data-v="tube">🩺 経管 (NG/EG)</button>
               <button data-v="peg">⚪ 胃瘻 (PEG)</button>
               <button data-v="spoon">🥄 スプーン</button>
@@ -1370,9 +1373,10 @@ body.printing #printView{display:block !important;position:relative;background:#
       <div style="font-size:12.5px;font-weight:700;color:var(--text2);margin-bottom:6px">💊 投与する薬剤リスト</div>
       <div class="med-list-head">
         <span>薬剤名</span>
-        <span style="text-align:center">量</span>
-        <span style="text-align:center">単位</span>
-        <span style="text-align:center">経路</span>
+        <span>量</span>
+        <span>単位</span>
+        <span>経路</span>
+        <span>頻度</span>
         <span></span>
       </div>
       <div id="bmList"></div>
@@ -2570,7 +2574,7 @@ function renderIoGrid(){
   html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
   // 給餌方法
   const feedDef = p.carePlan?.feedMethod || '';
-  const FEED_LABELS = {bowl:'🍽器', tube:'🩺経管', peg:'⚪胃瘻', spoon:'🥄スプ', hand:'✋手', syringe:'💉ｼﾘﾝｼﾞ'};
+  const FEED_LABELS = {bowl:'🍽器', bowl_high:'🍽⬆高', tube:'🩺経管', peg:'⚪胃瘻', spoon:'🥄スプ', hand:'✋手', syringe:'💉ｼﾘﾝｼﾞ'};
   html += `<tr><th class="label">給餌方法</th>`;
   times.forEach(t=>{
     const io = findRecordAt(p.inout, t);
@@ -2640,6 +2644,20 @@ function renderIoGrid(){
     html += `<td class="time ${cls}" style="${sty}"><select onchange="setIoAt('${t}','stoolScore',this.value)" style="background:transparent;color:inherit;font-weight:inherit">
       <option value="" ${!s?'selected':''}>—</option>
       ${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${s==n?'selected':''}>${n}</option>`).join('')}
+    </select></td>`;
+  });
+  html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
+  // 排泄場所
+  const toiletDef = p.carePlan?.toilet || '';
+  const TOILET_LABELS = {indoor:'🏠室内', outdoor:'🚶散歩', pad:'パッド', other:'その他'};
+  html += `<tr><th class="label">排泄場所</th>`;
+  times.forEach(t=>{
+    const io = findRecordAt(p.inout, t);
+    const m = io?.toiletLocation ?? '';
+    const def = (m==='' && toiletDef && toiletDef!=='both') ? toiletDef : m;
+    html += `<td class="time" style="padding:0"><select class="icon-select" onchange="setIoAt('${t}','toiletLocation',this.value)">
+      <option value="">—</option>
+      ${Object.entries(TOILET_LABELS).map(([k,l])=>`<option value="${k}" ${def===k?'selected':''}>${l}</option>`).join('')}
     </select></td>`;
   });
   html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
@@ -2761,10 +2779,18 @@ function setFluidRate(key, t, val){
 }
 function toggleMedAt(key, t){
   const p = state.patients[currentId]; p.meds = p.meds||[];
-  const e = p.meds.find(x=>`${x.name||'(無名)'}__${x.dose||''}`===key && x.at===t);
-  if (!e) return;
-  pushUndo(e.done?'投薬完了取消':'投薬完了');
-  e.done = !e.done;
+  const idx = p.meds.findIndex(x=>`${x.name||'(無名)'}__${x.dose||''}`===key && x.at===t);
+  if (idx < 0) return;
+  const e = p.meds[idx];
+  if (!e.done){
+    // ⏰/⚠ → ✓ (実施)
+    pushUndo('投薬完了');
+    e.done = true;
+  } else {
+    // ✓ → 削除（予定取消）
+    pushUndo('投薬予定削除');
+    p.meds.splice(idx, 1);
+  }
   saveState(); renderTxGrid(); updateTabAlertDots();
 }
 function addMedAt(key, t){
@@ -4215,10 +4241,31 @@ const bmSelectedHours = new Set();
 let bmSelectedDays = 1;
 const ROUTE_OPTIONS = ['IV','IM','SC','CRI','PO','IO','IH','点眼','その他'];
 const UNIT_OPTIONS = ['mg','mg/kg','mL','mL/h','μg','μg/kg/min','IU','g','滴','錠'];
+const TIMING_PRESETS = {
+  'auto': '全体',
+  'SID':  'SID',
+  'BID':  'BID',
+  'TID':  'TID',
+  'QID':  'QID',
+  'q4h':  'q4h',
+  'q6h':  'q6h',
+  'q8h':  'q8h',
+  'q12h': 'q12h',
+};
+const TIMING_HOURS = {
+  'SID':  [8],
+  'BID':  [8, 20],
+  'TID':  [8, 14, 20],
+  'QID':  [6, 12, 18, 0],
+  'q4h':  [6, 10, 14, 18, 22, 2],
+  'q6h':  [6, 12, 18, 0],
+  'q8h':  [6, 14, 22],
+  'q12h': [8, 20],
+};
 function openBulkMedScheduler(){
   bulkMedList = [
-    {name:'', dose:'', unit:'mg', route:'IV'},
-    {name:'', dose:'', unit:'mg', route:'IV'},
+    {name:'', dose:'', unit:'mg', route:'IV', timing:'auto'},
+    {name:'', dose:'', unit:'mg', route:'IV', timing:'auto'},
   ];
   bmSelectedHours.clear();
   bmSelectedDays = 1;
@@ -4237,16 +4284,18 @@ function renderBmList(){
   c.innerHTML = bulkMedList.map((m,i)=>{
     const unitOpts = UNIT_OPTIONS.map(u=>`<option value="${u}" ${m.unit===u?'selected':''}>${u}</option>`).join('');
     const routeOpts = ROUTE_OPTIONS.map(r=>`<option value="${r}" ${m.route===r?'selected':''}>${r}</option>`).join('');
+    const timingOpts = Object.entries(TIMING_PRESETS).map(([k,l])=>`<option value="${k}" ${(m.timing||'auto')===k?'selected':''}>${l}</option>`).join('');
     return `<div class="med-list-row">
       <input value="${escapeHtml(m.name||'')}" placeholder="薬剤名" oninput="bulkMedList[${i}].name=this.value;updateBmPreview()">
       <input type="number" step="any" value="${m.dose??''}" placeholder="量" oninput="bulkMedList[${i}].dose=this.value" style="text-align:center">
       <select onchange="bulkMedList[${i}].unit=this.value">${unitOpts}</select>
       <select onchange="bulkMedList[${i}].route=this.value">${routeOpts}</select>
+      <select onchange="bulkMedList[${i}].timing=this.value;updateBmPreview()">${timingOpts}</select>
       <button class="del" onclick="removeBmRow(${i})">×</button>
     </div>`;
   }).join('');
 }
-function addBulkMedRow(){ bulkMedList.push({name:'',dose:'',unit:'mg',route:'IV'}); renderBmList(); updateBmPreview() }
+function addBulkMedRow(){ bulkMedList.push({name:'',dose:'',unit:'mg',route:'IV',timing:'auto'}); renderBmList(); updateBmPreview() }
 function removeBmRow(i){ bulkMedList.splice(i,1); renderBmList(); updateBmPreview() }
 function toggleBmHour(h){
   if (bmSelectedHours.has(h)) bmSelectedHours.delete(h);
@@ -4266,11 +4315,19 @@ function bmPreset(name){
 }
 function updateBmPreview(){
   const validMeds = bulkMedList.filter(m=>m.name && m.name.trim());
-  const hrs = [...bmSelectedHours].sort((a,b)=>a-b);
-  const count = validMeds.length * hrs.length * bmSelectedDays;
-  const hrText = hrs.length ? hrs.map(h=>String(h).padStart(2,'0')+':00').join(' / ') : '時刻未選択';
+  const globalHrs = [...bmSelectedHours].sort((a,b)=>a-b);
+  let totalEntries = 0;
+  const perMedDetails = [];
+  validMeds.forEach(m=>{
+    const timing = m.timing || 'auto';
+    const hours = (timing==='auto') ? globalHrs : (TIMING_HOURS[timing]||[]);
+    totalEntries += hours.length * bmSelectedDays;
+    if (timing!=='auto') perMedDetails.push(`${m.name||''}: ${TIMING_PRESETS[timing]}(${hours.length}×${bmSelectedDays}日)`);
+  });
+  const hrText = globalHrs.length ? globalHrs.map(h=>String(h).padStart(2,'0')+':00').join(' / ') : '未選択';
+  const detail = perMedDetails.length ? '\n個別: ' + perMedDetails.join(' / ') : '';
   document.getElementById('bmPreview').textContent =
-    `→ ${validMeds.length}薬剤 × ${hrs.length}時刻 × ${bmSelectedDays}日 = ${count}件の予定\n${hrText}`;
+    `→ ${validMeds.length}薬剤・${bmSelectedDays}日 = 計${totalEntries}件\n全体設定時刻: ${hrText}${detail}`;
 }
 // Day click delegation (separate from schedDays)
 document.addEventListener('click', e=>{
@@ -4286,24 +4343,32 @@ function commitBulkMedSchedule(){
   if (!validMeds.length){ toast('薬剤を1つ以上入力','err'); return }
   const startDate = document.getElementById('bmDate').value;
   if (!startDate){ toast('開始日を入力','err'); return }
-  if (bmSelectedHours.size===0){ toast('時刻を1つ以上選択','err'); return }
+  // Check: at least one med has a usable timing (either global or preset)
+  const globalHrs = [...bmSelectedHours].sort((a,b)=>a-b);
+  const someMedHasTime = validMeds.some(m=>{
+    const t = m.timing||'auto';
+    return (t==='auto' && globalHrs.length>0) || (TIMING_HOURS[t] && TIMING_HOURS[t].length>0);
+  });
+  if (!someMedHasTime){ toast('時刻またはタイミング(SID/BID等)を選択','err'); return }
   pushUndo('薬剤一括予定追加');
   const p = state.patients[currentId];
   p.meds = p.meds||[];
-  const hrs = [...bmSelectedHours].sort((a,b)=>a-b);
   let count = 0;
   for (let d=0; d<bmSelectedDays; d++){
     const dt = new Date(startDate+'T00:00');
     dt.setDate(dt.getDate()+d);
     const ds = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
-    hrs.forEach(h=>{
-      const at = `${ds}T${String(h).padStart(2,'0')}:00`;
-      validMeds.forEach(m=>{
-        const name = m.name.trim();
-        const doseN = (m.dose==null||m.dose==='') ? '' : String(m.dose);
-        const unit = (m.unit||'').trim();
-        const route = (m.route||'').trim();
-        const dose = ((doseN ? `${doseN}${unit}` : '') + (route ? ` ${route}` : '')).trim();
+    validMeds.forEach(m=>{
+      const timing = m.timing||'auto';
+      const hours = (timing==='auto') ? globalHrs : (TIMING_HOURS[timing]||[]);
+      if (!hours.length) return;
+      const name = m.name.trim();
+      const doseN = (m.dose==null||m.dose==='') ? '' : String(m.dose);
+      const unit = (m.unit||'').trim();
+      const route = (m.route||'').trim();
+      const dose = ((doseN ? `${doseN}${unit}` : '') + (route ? ` ${route}` : '')).trim();
+      hours.forEach(h=>{
+        const at = `${ds}T${String(h).padStart(2,'0')}:00`;
         if (!p.meds.find(x=>x.at===at && x.name===name && x.dose===dose)){
           p.meds.push({ at, name, dose, staff:'', done:false });
           count++;
