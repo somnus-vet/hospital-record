@@ -256,6 +256,76 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 .st-7{background:var(--st-7);color:#5e3a22;text-shadow:none}
 .stool-legend{font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;margin-top:3px;font-weight:600}
 
+/* ============================================================
+   ROUND WIZARD MODAL
+   ============================================================ */
+.btn-round{background:linear-gradient(135deg,#16a085 0%,#27ae60 100%);color:#fff;border:none;border-radius:14px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(22,160,133,.4);font-family:inherit}
+.btn-round:active{transform:scale(.96)}
+
+.round-progress{display:flex;gap:5px;padding:8px 16px;background:var(--bg-soft);border-bottom:1px solid var(--border-soft)}
+.round-progress .pip{flex:1;height:4px;background:#dde3ec;border-radius:2px;transition:background .2s}
+.round-progress .pip.done{background:var(--green)}
+.round-progress .pip.active{background:var(--blue);box-shadow:0 0 6px rgba(46,134,193,.45)}
+
+.round-step{display:none;padding:14px 16px}
+.round-step.on{display:block}
+
+.round-header{display:flex;gap:5px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.round-header .flabel{min-width:42px;font-size:12px;font-weight:700;color:var(--muted)}
+.round-header .ts-input{flex:1;font-size:13px;padding:7px 9px;border:1.5px solid var(--border);border-radius:5px;font-family:inherit;font-feature-settings:'tnum';min-width:130px;background:#fff}
+.round-header .ts-btn{padding:6px 9px;background:var(--blue);color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;min-height:32px}
+.round-header .ts-btn:active{transform:scale(.94)}
+
+.round-vital-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:6px}
+.round-vital-cell{background:var(--bg-soft);border:2px solid var(--border-soft);border-radius:9px;padding:9px 10px;text-align:center;transition:border-color .2s,background .2s}
+.round-vital-cell.abn{border-color:var(--red);background:var(--red-soft)}
+.round-vital-cell .lbl{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:2px}
+.round-vital-cell input{width:100%;border:none;background:transparent;font-size:28px;font-weight:800;color:var(--text);text-align:center;font-feature-settings:'tnum';padding:2px 0;min-height:42px;font-family:inherit}
+.round-vital-cell input:focus{outline:none;color:var(--navy)}
+.round-vital-cell.abn input{color:var(--red)}
+.round-vital-cell .ghost{font-size:11px;color:var(--muted);margin-top:2px;cursor:pointer;font-weight:600;-webkit-user-select:none}
+.round-vital-cell .ghost:active{color:var(--blue)}
+
+.round-io-block{margin-bottom:13px}
+.round-io-block .lbl{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px}
+.round-io-block .pct-row,.round-io-block .maru-row{display:flex;gap:4px}
+.round-io-block .pct-row button,.round-io-block .maru-btn{flex:1;padding:11px 4px;background:#fff;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;font-weight:800;font-size:14px;color:var(--text2);font-family:inherit;min-height:44px}
+.round-io-block .pct-row button.on{background:var(--green);color:#fff;border-color:var(--green)}
+.round-io-block .maru-btn.on-circle{background:var(--green);color:#fff;border-color:var(--green)}
+.round-io-block .maru-btn.on-cross{background:var(--red);color:#fff;border-color:var(--red)}
+.round-io-block input[type=number]{width:100%;font-size:18px;padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-weight:700;text-align:center;font-family:inherit;font-feature-settings:'tnum'}
+
+.round-stool-row{display:flex;gap:3px;margin-top:6px}
+.round-stool-row button{flex:1;padding:9px 4px;border:1.5px solid var(--border);border-radius:5px;cursor:pointer;font-weight:800;font-size:14px;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.2);font-family:inherit;min-height:42px}
+.round-stool-row button:nth-child(1){background:var(--st-1)}
+.round-stool-row button:nth-child(2){background:var(--st-2)}
+.round-stool-row button:nth-child(3){background:var(--st-3)}
+.round-stool-row button:nth-child(4){background:var(--st-4)}
+.round-stool-row button:nth-child(5){background:var(--st-5)}
+.round-stool-row button:nth-child(6){background:var(--st-6);color:#5e3a22;text-shadow:none}
+.round-stool-row button:nth-child(7){background:var(--st-7);color:#5e3a22;text-shadow:none}
+.round-stool-row button.on{box-shadow:0 0 0 3px var(--navy)}
+
+.round-med-list{display:flex;flex-direction:column;gap:6px}
+.round-med-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;-webkit-user-select:none}
+.round-med-row.checked{background:#e8f5ef;border-color:var(--green)}
+.round-med-row.overdue{background:#fdebe7;border-color:var(--red)}
+.round-med-row .chkbox{width:24px;height:24px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;background:#fff}
+.round-med-row.checked .chkbox{background:var(--green);border-color:var(--green)}
+.round-med-row .mt{font-weight:700;font-size:13px;color:var(--navy);min-width:46px;font-feature-settings:'tnum'}
+.round-med-row.overdue .mt{color:var(--red)}
+.round-med-row .mn{flex:1;font-size:13px;color:var(--text);line-height:1.3}
+.round-empty-meds{padding:18px;text-align:center;color:var(--muted);font-size:12.5px;font-style:italic}
+
+.round-note-area textarea{width:100%;border:1.5px solid var(--border);border-radius:6px;padding:9px 11px;font-size:14px;font-family:inherit;line-height:1.5}
+.round-quick-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.round-quick-tags .qt-label{font-size:11px;color:var(--muted);width:100%;font-weight:700;margin-top:6px;letter-spacing:.3px}
+.round-quick-tags button{padding:8px 13px;background:#fff;border:1.5px solid var(--border);border-radius:18px;cursor:pointer;font-weight:600;font-size:12.5px;color:var(--text2);font-family:inherit;min-height:36px}
+.round-quick-tags button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+.round-foot{display:flex;gap:7px;justify-content:space-between;padding:9px 14px;border-top:1px solid var(--border-soft);background:var(--bg-soft)}
+.round-foot .left,.round-foot .right{display:flex;gap:6px}
+
 /* Stool picker modal */
 .stool-picker-list{display:flex;flex-direction:column;gap:7px}
 .stool-picker-list button{display:flex;align-items:center;gap:11px;padding:10px;background:#fff;border:2px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit;text-align:left;width:100%;min-height:60px}
@@ -672,6 +742,7 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
       <div class="weight-pill" id="dtWeight">— kg</div>
       <button class="btn-quick" id="btnUndo" onclick="undo()" title="元に戻す (⌘Z)" style="background:rgba(255,255,255,.13);color:#fff;min-width:36px;padding:5px 9px">↶</button>
       <button class="btn-quick" onclick="openQuickRecord()" title="クイック記録">⚡ 記録</button>
+      <button class="btn-round" onclick="openRound()" title="ラウンド開始">🚶 ラウンド</button>
     </div>
     <div class="fh-vitals" id="fhVitals"></div>
     <div class="fh-status" id="fhStatus"></div>
@@ -698,6 +769,7 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
         <div><b>シフトチェンジ用ビュー</b> — 直近の状態・申し送り事項を一目で把握できます。</div>
         <span class="now" id="hoNow">—</span>
       </div>
+      <div style="margin:10px 11px 0"><button class="btn" onclick="openRound()" style="background:linear-gradient(135deg,#16a085 0%,#27ae60 100%);width:100%;font-size:14px;padding:13px;min-height:50px">🚶 ラウンド開始</button></div>
       <div id="hoAlerts"></div>
       <div class="card sys-circ">
         <div class="c-hdr">📊 直近12時間のバイタル <span class="c-hdr-en">VITAL SPARK</span></div>
@@ -1245,6 +1317,113 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 <!-- PHOTO VIEWER -->
 <div class="photo-viewer hidden" id="photoViewer" onclick="closePhotoViewer()">
   <img id="photoViewerImg" src="">
+</div>
+
+<!-- ROUND WIZARD MODAL -->
+<div class="modal-bg" id="roundModal">
+  <div class="modal">
+    <div class="modal-hdr" id="rwTitle">🚶 ラウンド [1/4] バイタル <button class="modal-x" onclick="closeModal('roundModal')">×</button></div>
+    <div class="round-progress">
+      <div class="pip active"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div>
+    </div>
+    <div class="modal-body" style="padding:0;max-height:65vh">
+
+      <!-- Step 1: Vitals -->
+      <div class="round-step on" id="rStep1">
+        <div class="round-header">
+          <span class="flabel">時刻</span>
+          <input class="ts-input" type="datetime-local" id="rwAt">
+          <button class="ts-btn" onclick="setRoundTime(0)">今</button>
+          <button class="ts-btn" onclick="setRoundTime(-30)">30分前</button>
+          <button class="ts-btn" onclick="setRoundTime(-60)">1h前</button>
+        </div>
+        <div class="round-header">
+          <span class="flabel">担当</span>
+          <input class="ts-input" id="rwStaff" placeholder="例: 看護B">
+        </div>
+        <div class="round-vital-grid" id="rwVitalGrid"></div>
+      </div>
+
+      <!-- Step 2: In/Out -->
+      <div class="round-step" id="rStep2">
+        <div class="round-io-block">
+          <div class="lbl">食事 %</div>
+          <div class="pct-row">
+            <button data-pct="0" onclick="setRoundFood(0)">0</button>
+            <button data-pct="25" onclick="setRoundFood(25)">25</button>
+            <button data-pct="50" onclick="setRoundFood(50)">50</button>
+            <button data-pct="75" onclick="setRoundFood(75)">75</button>
+            <button data-pct="100" onclick="setRoundFood(100)">100</button>
+          </div>
+        </div>
+        <div class="round-io-block">
+          <div class="lbl">飲水 (mL・任意)</div>
+          <input type="number" id="rwWater" placeholder="例: 50">
+        </div>
+        <div class="round-io-block">
+          <div class="lbl">尿</div>
+          <div class="maru-row" id="rwUrineRow">
+            <button class="maru-btn" data-mark="○" onclick="setRoundUrine('○')">○ あり</button>
+            <button class="maru-btn" data-mark="×" onclick="setRoundUrine('×')">× なし</button>
+          </div>
+          <input type="number" id="rwUrineVol" placeholder="量 mL (任意)" style="margin-top:6px">
+        </div>
+        <div class="round-io-block">
+          <div class="lbl">便</div>
+          <div class="maru-row" id="rwStoolRow">
+            <button class="maru-btn" data-mark="○" onclick="setRoundStool('○')">○ あり</button>
+            <button class="maru-btn" data-mark="×" onclick="setRoundStool('×')">× なし</button>
+          </div>
+          <div class="round-stool-row" id="rwStoolScore">
+            <button onclick="setRoundStoolScore(1)">1</button>
+            <button onclick="setRoundStoolScore(2)">2</button>
+            <button onclick="setRoundStoolScore(3)">3</button>
+            <button onclick="setRoundStoolScore(4)">4</button>
+            <button onclick="setRoundStoolScore(5)">5</button>
+            <button onclick="setRoundStoolScore(6)">6</button>
+            <button onclick="setRoundStoolScore(7)">7</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Meds -->
+      <div class="round-step" id="rStep3">
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">ラウンド時刻±1時間の投薬予定。チェックで実施記録。</div>
+        <div class="round-med-list" id="rwMedList"></div>
+      </div>
+
+      <!-- Step 4: Notes -->
+      <div class="round-step" id="rStep4">
+        <div class="round-note-area">
+          <div class="round-io-block">
+            <div class="lbl">観察事項 (任意・短くて可)</div>
+            <textarea class="ftxt ftxt-auto" oninput="autoExpand(this);roundState&&(roundState.notes.text=this.value)" id="rwNote" placeholder="食事完食、活動性良好 等"></textarea>
+          </div>
+          <div class="round-quick-tags" id="rwTags">
+            <div class="qt-label">活動性</div>
+            <button data-type="activity" data-val="良好" onclick="toggleRoundTag(this)">良好</button>
+            <button data-type="activity" data-val="普通" onclick="toggleRoundTag(this)">普通</button>
+            <button data-type="activity" data-val="低下" onclick="toggleRoundTag(this)">低下</button>
+            <div class="qt-label">疼痛</div>
+            <button data-type="pain" data-val="なし" onclick="toggleRoundTag(this)">なし</button>
+            <button data-type="pain" data-val="軽度" onclick="toggleRoundTag(this)">軽度</button>
+            <button data-type="pain" data-val="中度" onclick="toggleRoundTag(this)">中度</button>
+            <button data-type="pain" data-val="強" onclick="toggleRoundTag(this)">強</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="round-foot">
+      <div class="left">
+        <button class="btn btn-sec btn-sm" onclick="roundBack()" id="rwBack" style="display:none">← 戻る</button>
+      </div>
+      <div class="right">
+        <button class="btn btn-sec btn-sm" onclick="roundNext()" id="rwSkip">スキップ</button>
+        <button class="btn btn-sm" onclick="roundNext()" id="rwNext" style="background:linear-gradient(135deg,#16a085 0%,#27ae60 100%)">次へ →</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- STOOL SCORE PICKER (Bristol/Purina) -->
@@ -3141,6 +3320,280 @@ document.addEventListener('click', e=>{
     if (c && (c.classList.contains('time') || c.tagName==='TH')) c.classList.add('col-hl');
   });
 });
+
+/* ============================================================
+   ROUND WIZARD (4-step batch input)
+   ============================================================ */
+let roundState = null;
+
+function openRound(){
+  if (!currentId) return;
+  const p = state.patients[currentId];
+  roundState = {
+    step: 1,
+    at: nowLocalISO(),
+    staff: '',
+    vitals: { temp:null, hr:null, rr:null, spo2:null },
+    inout: { foodPct:null, water:null, urinePresent:'', urineVol:null, stoolPresent:'', stoolScore:null },
+    medChecks: [],
+    notes: { text:'', activity:'', pain:'' },
+  };
+  document.getElementById('rwAt').value = roundState.at;
+  document.getElementById('rwStaff').value = '';
+  document.getElementById('rwWater').value = '';
+  document.getElementById('rwUrineVol').value = '';
+  document.getElementById('rwNote').value = '';
+  // Reset Step 2 buttons
+  document.querySelectorAll('#rStep2 .pct-row button').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('#rStep2 .maru-btn').forEach(b=>{ b.classList.remove('on-circle','on-cross') });
+  document.querySelectorAll('#rwStoolScore button').forEach(b=>b.classList.remove('on'));
+  // Reset Step 4 tags
+  document.querySelectorAll('#rwTags button').forEach(b=>b.classList.remove('on'));
+  renderRoundVitalGrid();
+  goToRoundStep(1);
+  document.getElementById('roundModal').classList.add('on');
+  setTimeout(()=>document.getElementById('rwV_temp')?.focus(), 100);
+}
+
+function renderRoundVitalGrid(){
+  const p = state.patients[currentId];
+  const lastV = lastVital(p);
+  const fields = [
+    {k:'temp', label:'体温', unit:'℃'},
+    {k:'hr',   label:'心拍', unit:'/分'},
+    {k:'rr',   label:'呼吸', unit:'/分'},
+    {k:'spo2', label:'SpO₂', unit:'%'},
+  ];
+  document.getElementById('rwVitalGrid').innerHTML = fields.map(f=>{
+    const last = lastV ? lastV[f.k] : null;
+    return `<div class="round-vital-cell" data-k="${f.k}">
+      <div class="lbl">${f.label} <span style="color:var(--muted);font-weight:500">${f.unit}</span></div>
+      <input type="number" step="any" id="rwV_${f.k}" inputmode="decimal" oninput="onRoundVitalInput('${f.k}',this.value)">
+      ${last!=null?`<div class="ghost" onclick="useRoundGhost('${f.k}',${last})">前回: ${last} ・タップで採用</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function onRoundVitalInput(k, v){
+  if (!roundState) return;
+  roundState.vitals[k] = (v===''||v==null) ? null : num(v);
+  const p = state.patients[currentId]; const r = p.range||{};
+  const rmap = {temp:[r.tempL,r.tempH],hr:[r.hrL,r.hrH],rr:[r.rrL,r.rrH],spo2:[r.spoL,r.spoH]};
+  const rng = rmap[k];
+  const cell = document.querySelector(`.round-vital-cell[data-k="${k}"]`);
+  if (cell){
+    const val = num(v);
+    const abn = rng && rng[0]!=null && val!=null && (val<rng[0]||val>rng[1]);
+    cell.classList.toggle('abn', !!abn);
+  }
+}
+function useRoundGhost(k, val){
+  const input = document.getElementById('rwV_'+k);
+  input.value = val;
+  onRoundVitalInput(k, val);
+}
+
+function setRoundTime(offsetMin){
+  const d = new Date();
+  d.setMinutes(d.getMinutes() + offsetMin - d.getTimezoneOffset());
+  roundState.at = d.toISOString().slice(0,16);
+  document.getElementById('rwAt').value = roundState.at;
+}
+
+function setRoundFood(pct){
+  if (!roundState) return;
+  roundState.inout.foodPct = (roundState.inout.foodPct === pct) ? null : pct;
+  document.querySelectorAll('#rStep2 .pct-row button').forEach(b=>{
+    b.classList.toggle('on', parseInt(b.dataset.pct,10) === roundState.inout.foodPct);
+  });
+}
+function setRoundUrine(mark){
+  if (!roundState) return;
+  roundState.inout.urinePresent = roundState.inout.urinePresent === mark ? '' : mark;
+  document.querySelectorAll('#rwUrineRow .maru-btn').forEach(b=>{
+    const m = b.dataset.mark;
+    b.classList.remove('on-circle','on-cross');
+    if (m === roundState.inout.urinePresent) b.classList.add(m === '○' ? 'on-circle' : 'on-cross');
+  });
+}
+function setRoundStool(mark){
+  if (!roundState) return;
+  roundState.inout.stoolPresent = roundState.inout.stoolPresent === mark ? '' : mark;
+  document.querySelectorAll('#rwStoolRow .maru-btn').forEach(b=>{
+    const m = b.dataset.mark;
+    b.classList.remove('on-circle','on-cross');
+    if (m === roundState.inout.stoolPresent) b.classList.add(m === '○' ? 'on-circle' : 'on-cross');
+  });
+}
+function setRoundStoolScore(s){
+  if (!roundState) return;
+  roundState.inout.stoolScore = roundState.inout.stoolScore === s ? null : s;
+  document.querySelectorAll('#rwStoolScore button').forEach((b,i)=>{
+    b.classList.toggle('on', (i+1) === roundState.inout.stoolScore);
+  });
+}
+
+function renderRoundMedList(){
+  const p = state.patients[currentId];
+  const refT = new Date(roundState.at).getTime();
+  const hourMs = 60 * 60 * 1000;
+  const eligibleIdx = [];
+  (p.meds||[]).forEach((m,i)=>{
+    if (!m.at || m.done) return;
+    const mt = new Date(m.at).getTime();
+    if (Math.abs(mt - refT) <= hourMs) eligibleIdx.push({idx:i, at:m.at, name:m.name, dose:m.dose, overdue:mt < Date.now()});
+  });
+  eligibleIdx.sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+  roundState.medChecks = eligibleIdx.map(e=>({...e, checked:false}));
+  const c = document.getElementById('rwMedList');
+  if (!eligibleIdx.length){
+    c.innerHTML = `<div class="round-empty-meds">この時刻±1時間の予定はありません</div>`;
+    return;
+  }
+  c.innerHTML = roundState.medChecks.map((m,i)=>{
+    const t = new Date(m.at);
+    const timeShort = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+    return `<div class="round-med-row ${m.overdue?'overdue':''}" onclick="toggleRoundMedCheck(${i})">
+      <div class="chkbox">${m.checked?'✓':''}</div>
+      <div class="mt">${timeShort}${m.overdue?' ⚠':''}</div>
+      <div class="mn"><b>${escapeHtml(m.name||'')}</b> ${escapeHtml(m.dose||'')}</div>
+    </div>`;
+  }).join('');
+}
+function toggleRoundMedCheck(i){
+  if (!roundState || !roundState.medChecks[i]) return;
+  roundState.medChecks[i].checked = !roundState.medChecks[i].checked;
+  const row = document.querySelectorAll('#rwMedList .round-med-row')[i];
+  if (row){
+    row.classList.toggle('checked', roundState.medChecks[i].checked);
+    row.querySelector('.chkbox').textContent = roundState.medChecks[i].checked ? '✓' : '';
+  }
+}
+
+function toggleRoundTag(btn){
+  if (!roundState) return;
+  const type = btn.dataset.type;
+  const val = btn.dataset.val;
+  // Single-select within same type
+  document.querySelectorAll(`#rwTags button[data-type="${type}"]`).forEach(b=>{
+    if (b !== btn) b.classList.remove('on');
+  });
+  btn.classList.toggle('on');
+  roundState.notes[type] = btn.classList.contains('on') ? val : '';
+}
+
+function goToRoundStep(n){
+  if (!roundState) return;
+  roundState.step = n;
+  document.querySelectorAll('.round-step').forEach((s,i)=>s.classList.toggle('on', i+1 === n));
+  document.querySelectorAll('.round-progress .pip').forEach((p,i)=>{
+    p.classList.toggle('done', i+1 < n);
+    p.classList.toggle('active', i+1 === n);
+  });
+  const titles = ['', 'バイタル', 'In/Out', '投薬チェック', 'メモ'];
+  document.getElementById('rwTitle').innerHTML = `🚶 ラウンド [${n}/4] ${titles[n]} <button class="modal-x" onclick="closeModal('roundModal')">×</button>`;
+  document.getElementById('rwBack').style.display = n > 1 ? 'inline-flex' : 'none';
+  document.getElementById('rwNext').textContent = n === 4 ? '✓ 完了' : '次へ →';
+  if (n === 3) renderRoundMedList();
+  if (n === 4) setTimeout(()=>autoExpand(document.getElementById('rwNote')), 30);
+}
+
+function roundNext(){
+  if (!roundState) return;
+  // Sync time + staff from inputs
+  roundState.at = document.getElementById('rwAt').value || nowLocalISO();
+  roundState.staff = document.getElementById('rwStaff').value.trim();
+  // Sync Step 2 numeric inputs
+  const w = document.getElementById('rwWater').value;
+  roundState.inout.water = (w===''||w==null) ? null : num(w);
+  const u = document.getElementById('rwUrineVol').value;
+  roundState.inout.urineVol = (u===''||u==null) ? null : num(u);
+  // Sync Step 4 note
+  roundState.notes.text = document.getElementById('rwNote').value;
+
+  if (roundState.step < 4) goToRoundStep(roundState.step + 1);
+  else finishRound();
+}
+function roundBack(){ if (roundState && roundState.step > 1) goToRoundStep(roundState.step - 1) }
+
+function finishRound(){
+  if (!roundState || !currentId) return;
+  const p = state.patients[currentId];
+  pushUndo('ラウンド記録');
+  const at = roundState.at;
+  const staff = roundState.staff;
+  let vCount = 0, ioCount = 0, medDone = 0, noteAdded = false;
+
+  // Vitals - merge into existing or create new
+  const v = roundState.vitals;
+  const hasVital = ['temp','hr','rr','spo2'].some(k=>v[k]!=null);
+  if (hasVital){
+    p.vitals = p.vitals || [];
+    let ex = p.vitals.find(x=>x.at === at);
+    if (ex){
+      ['temp','hr','rr','spo2'].forEach(k=>{ if (v[k]!=null) ex[k] = v[k] });
+      if (staff) ex.staff = staff;
+    } else {
+      p.vitals.push({ at, temp:v.temp, hr:v.hr, rr:v.rr, spo2:v.spo2, staff });
+    }
+    vCount = ['temp','hr','rr','spo2'].filter(k=>v[k]!=null).length;
+  }
+
+  // In/Out - merge
+  const io = roundState.inout;
+  const ioKeysSet = {
+    foodPct: io.foodPct,
+    water: io.water,
+    urinePresent: io.urinePresent || null,
+    urine: io.urineVol,
+    stoolPresent: io.stoolPresent || null,
+    stoolScore: io.stoolScore,
+  };
+  const hasIo = Object.values(ioKeysSet).some(x=>x!=null && x!=='');
+  if (hasIo){
+    p.inout = p.inout || [];
+    let ex = p.inout.find(x=>x.at === at);
+    if (ex){
+      Object.entries(ioKeysSet).forEach(([k,val])=>{ if (val!=null && val!=='') ex[k] = val });
+    } else {
+      p.inout.push({ at, foodType:'', ...ioKeysSet, note:'' });
+    }
+    ioCount = Object.values(ioKeysSet).filter(x=>x!=null && x!=='').length;
+  }
+
+  // Mark meds done
+  roundState.medChecks.forEach(m=>{
+    if (m.checked && p.meds[m.idx]){
+      p.meds[m.idx].done = true;
+      if (staff) p.meds[m.idx].staff = staff;
+      medDone++;
+    }
+  });
+
+  // Notes
+  const txt = (roundState.notes.text||'').trim();
+  if (txt || roundState.notes.activity || roundState.notes.pain){
+    p.notes = p.notes || [];
+    p.notes.unshift({
+      at, staff,
+      activity: roundState.notes.activity,
+      pain: roundState.notes.pain,
+      text: txt,
+    });
+    noteAdded = true;
+  }
+
+  saveState();
+  closeModal('roundModal');
+  roundState = null;
+
+  // Refresh
+  loadIntoForm();
+  const active = document.querySelector('.tab.on')?.dataset.tab;
+  if (active) switchTab(active);
+
+  toast(`✅ ラウンド完了 ${fmtDT(at)}${staff?' '+staff:''}\nバイタル${vCount} / I/O${ioCount} / 投薬${medDone}件 / メモ${noteAdded?'1':'0'}`,'ok');
+}
 
 /* ============================================================
    STOOL SCORE PICKER (Bristol/Purina with descriptions)
