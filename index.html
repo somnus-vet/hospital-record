@@ -744,7 +744,7 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
             </div>
           </div>
           <div class="frow"><span class="flabel">生年月日</span>
-            <input class="fin fin-md" id="iBirthday" type="date" onchange="recalcAge()">
+            <input class="fin fin-md" id="iBirthday" type="text" inputmode="numeric" placeholder="YYYY/MM/DD" maxlength="10" oninput="onBirthdayInput(this)">
             <div class="age-display" id="iAgeDisplay">—</div>
           </div>
           <div class="frow"><span class="flabel">体重</span><input class="fin fin-md" id="iWeight" type="number" step="0.01"><span class="unit">kg</span></div>
@@ -1522,9 +1522,12 @@ function loadIntoForm(){
   document.getElementById('iPid').value = p.patientId||'';
   document.getElementById('iName').value = p.name||'';
   document.getElementById('iBreed').value = p.breed||'';
-  document.getElementById('iBirthday').value = p.birthday||'';
+  // 生年月日は YYYY/MM/DD 形式で表示（旧データの - も / に正規化）
+  document.getElementById('iBirthday').value = (p.birthday||'').replace(/-/g,'/');
   document.getElementById('iWeight').value = p.bodyWeight??'';
-  document.getElementById('iAdmit').value = p.admittedAt||'';
+  // 入院日が空の場合は自動で当日を設定
+  if (!p.admittedAt) p.admittedAt = todayISO();
+  document.getElementById('iAdmit').value = p.admittedAt;
   document.getElementById('iDoc').value = p.doctor||'';
   document.getElementById('iCondition').value = p.condition||'';
   document.getElementById('iDx').value = p.diagnosis||'';
@@ -1761,22 +1764,41 @@ function readFormToPatient(){
 
 function computeAge(birthday){
   if (!birthday) return '';
-  const b = new Date(birthday);
-  if (isNaN(b)) return '';
+  // YYYY/MM/DD or YYYY-MM-DD どちらも受ける
+  const m = String(birthday).match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (!m) return '';
+  const y = +m[1], mo = +m[2], d = +m[3];
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return '';
+  const b = new Date(y, mo - 1, d);
+  if (b.getFullYear() !== y || b.getMonth() !== mo - 1 || b.getDate() !== d) return '';
   const now = new Date();
   let years = now.getFullYear() - b.getFullYear();
   let months = now.getMonth() - b.getMonth();
-  let days = now.getDate() - b.getDate();
-  if (days<0){ months--; days += 30 }
-  if (months<0){ years--; months += 12 }
-  if (years>0) return months>0 ? `${years}歳${months}ヶ月` : `${years}歳`;
-  if (months>0) return `${months}ヶ月`;
-  return `${days}日`;
+  if (now.getDate() < b.getDate()) months--;
+  if (months < 0) { years--; months += 12; }
+  if (years < 0) return '';
+  if (years === 0 && months === 0){
+    const days = Math.floor((now - b) / 86400000);
+    return `${days}日`;
+  }
+  if (years === 0) return `${months}ヶ月`;
+  if (months === 0) return `${years}歳`;
+  return `${years}歳${months}ヶ月`;
 }
 function recalcAge(){
   const b = document.getElementById('iBirthday').value;
   const age = computeAge(b);
   document.getElementById('iAgeDisplay').textContent = age || '—';
+}
+function onBirthdayInput(el){
+  // AnesLog方式：数字8桁を YYYY/MM/DD に自動整形
+  let digits = (el.value || '').replace(/\D/g, '').slice(0, 8);
+  let formatted = digits;
+  if (digits.length > 4) formatted = digits.slice(0,4) + '/' + digits.slice(4);
+  if (digits.length > 6) formatted = digits.slice(0,4) + '/' + digits.slice(4,6) + '/' + digits.slice(6);
+  el.value = formatted;
+  recalcAge();
+  if (currentId){ saveCurrent(false) }
 }
 function autoExpand(el){ if (!el) return; el.style.height='auto'; el.style.height = el.scrollHeight + 'px' }
 
