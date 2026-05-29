@@ -256,6 +256,18 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 .st-7{background:var(--st-7);color:#5e3a22;text-shadow:none}
 .stool-legend{font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;margin-top:3px;font-weight:600}
 
+/* Stool picker modal */
+.stool-picker-list{display:flex;flex-direction:column;gap:7px}
+.stool-picker-list button{display:flex;align-items:center;gap:11px;padding:10px;background:#fff;border:2px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit;text-align:left;width:100%;min-height:60px}
+.stool-picker-list button:active{transform:scale(.98);border-color:var(--blue)}
+.stool-picker-list button.normal{background:#e8f5ef;border-color:#27ae60}
+.stool-picker-list .num{width:48px;height:48px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;flex-shrink:0;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+.stool-picker-list .num.light{color:#5e3a22;text-shadow:none}
+.stool-picker-list .label{flex:1;min-width:0}
+.stool-picker-list .label .name{font-weight:800;font-size:14px;color:var(--text)}
+.stool-picker-list .label .desc{font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.4}
+.stool-picker-list .normal-tag{background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;margin-left:5px;letter-spacing:.4px}
+
 /* WEEK GRID */
 .week-grid{display:grid;grid-template-columns:88px repeat(7,1fr);gap:1px;background:var(--border);border:1px solid var(--border);font-size:11.5px;border-radius:6px;overflow:hidden}
 .week-grid>div{background:#fff;padding:5px 3px;text-align:center;min-height:32px;display:flex;align-items:center;justify-content:center;flex-direction:column;font-feature-settings:'tnum'}
@@ -1235,6 +1247,21 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
   <img id="photoViewerImg" src="">
 </div>
 
+<!-- STOOL SCORE PICKER (Bristol/Purina) -->
+<div class="modal-bg" id="stoolModal">
+  <div class="modal">
+    <div class="modal-hdr">便スコア (ブリストル) <button class="modal-x" onclick="closeModal('stoolModal')">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">時刻: <span id="smTime">—</span></div>
+      <div class="stool-picker-list" id="smList"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-warn btn-sm" onclick="setStoolValue('')" style="margin-right:auto">クリア</button>
+      <button class="btn btn-sec" onclick="closeModal('stoolModal')">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- COLOR LEGEND MODAL -->
 <div class="modal-bg" id="legendModal">
   <div class="modal">
@@ -2034,17 +2061,15 @@ function renderVitalsGrid(){
     </div></td>`;
   });
   html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
-  // 便スコア 1-7
+  // 便スコア 1-7 (tap opens picker with descriptions)
   html += `<tr><th class="label">便スコア</th>`;
   times.forEach(t=>{
     const io = findRecordAt(p.inout, t);
     const s = io?.stoolScore;
     const cls = s ? `stool-cell ${s>=6?'light':''}` : 'stool-cell empty';
     const sty = s ? `background:var(--st-${s})` : '';
-    html += `<td class="time ${cls}" style="${sty}"><select onchange="setIoAt('${t}','stoolScore',this.value)" style="background:transparent;color:inherit;font-weight:inherit">
-      <option value="" ${!s?'selected':''}>—</option>
-      ${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${s==n?'selected':''}>${n}</option>`).join('')}
-    </select></td>`;
+    const disp = s ? String(s) : '—';
+    html += `<td class="time ${cls}" style="${sty};cursor:pointer" onclick="openStoolPicker('${t}')">${disp}</td>`;
   });
   html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
   // メモ
@@ -3094,6 +3119,38 @@ document.addEventListener('click', e=>{
     if (c && (c.classList.contains('time') || c.tagName==='TH')) c.classList.add('col-hl');
   });
 });
+
+/* ============================================================
+   STOOL SCORE PICKER (Bristol/Purina with descriptions)
+   ============================================================ */
+const STOOL_LABELS = [
+  {n:1, name:'コロコロ便', desc:'硬くてコロコロの木の実のような便（排便困難）', light:false},
+  {n:2, name:'硬い便',     desc:'ソーセージ状だが硬く節がある', light:false},
+  {n:3, name:'やや硬い便', desc:'表面にひび割れのあるソーセージ状', light:false},
+  {n:4, name:'普通便',     desc:'なめらかで適度な軟らかさ・形が良いソーセージ状', light:false, normal:true},
+  {n:5, name:'やや軟らかい便', desc:'はっきりしたしわのある軟らかい半固形便', light:false},
+  {n:6, name:'泥状便',     desc:'境界がほぐれた不定形・ふにゃふにゃの便', light:true},
+  {n:7, name:'水様便',     desc:'水様で固形物を含まない液状の便（下痢）', light:true},
+];
+let stoolTargetTime = null;
+function openStoolPicker(t){
+  stoolTargetTime = t;
+  document.getElementById('smTime').textContent = fmtDT(t);
+  const c = document.getElementById('smList');
+  c.innerHTML = STOOL_LABELS.map(s=>`<button class="${s.normal?'normal':''}" onclick="setStoolValue(${s.n})">
+    <span class="num ${s.light?'light':''}" style="background:var(--st-${s.n})">${s.n}</span>
+    <span class="label">
+      <span class="name">${escapeHtml(s.name)}${s.normal?'<span class="normal-tag">正常</span>':''}</span>
+      <span class="desc">${escapeHtml(s.desc)}</span>
+    </span>
+  </button>`).join('');
+  document.getElementById('stoolModal').classList.add('on');
+}
+function setStoolValue(v){
+  if (!stoolTargetTime) return;
+  setIoAt(stoolTargetTime, 'stoolScore', v===''?'':String(v));
+  closeModal('stoolModal');
+}
 
 /* ============================================================
    ○/× SPLIT BUTTONS + QUICK I/O
