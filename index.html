@@ -587,6 +587,19 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 .pct-quick button .pct-g{display:block;font-size:8.5px;color:inherit;opacity:.7;font-weight:600;line-height:1;margin-top:2px;font-feature-settings:'tnum'}
 .pct-quick button.on .pct-g{opacity:.92}
 
+/* RER multiplier coefficient picker */
+.coeff-group{margin-bottom:12px}
+.coeff-group-title{font-size:12px;font-weight:800;color:var(--navy);margin-bottom:5px;padding-bottom:3px;border-bottom:2px solid var(--border-soft);letter-spacing:.3px}
+.coeff-items{display:flex;flex-direction:column;gap:5px}
+.coeff-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg-soft);border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-family:inherit;text-align:left;width:100%}
+.coeff-item:active{background:var(--blue-soft);border-color:var(--blue);transform:scale(.98)}
+.coeff-v{font-size:18px;font-weight:800;color:var(--navy);font-feature-settings:'tnum';min-width:46px;text-align:center;background:#fff;border-radius:5px;padding:2px 6px}
+.coeff-l{font-size:13px;color:var(--text);font-weight:600;flex:1;line-height:1.3}
+
+/* Coefficient picker button (next to multiplier label) */
+.coeff-picker-btn{font-size:9.5px;color:#fff;background:var(--blue);border:none;padding:2px 8px;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:700;margin-top:1px;display:inline-block}
+.coeff-picker-btn:active{background:var(--navy);transform:scale(.96)}
+
 /* Visit (面会) styles */
 .visit-card{background:var(--bg-soft);border-radius:8px;padding:11px 13px;margin-bottom:10px;border:1px solid var(--border-soft);border-left:4px solid var(--sys-obs)}
 .visit-card.mood-relief{border-left-color:#27ae60}
@@ -947,7 +960,7 @@ body.printing #printView{display:block !important;position:relative;background:#
             <div class="nut-item">
               <div class="nut-label">係数</div>
               <input class="fin fin-sm" style="text-align:center;font-weight:800;font-size:15px;padding:4px 6px;min-height:32px" type="number" step="0.1" id="iRerMult" placeholder="1.0" onchange="recalcCarePlan()">
-              <div style="font-size:9px;color:var(--muted);margin-top:1px">維持=1.0 / 病態=0.8〜1.4</div>
+              <button class="coeff-picker-btn" onclick="openCoeffPicker()" type="button">📋 早見表</button>
             </div>
             <div class="nut-item">
               <div class="nut-label">目標 kcal</div>
@@ -971,28 +984,28 @@ body.printing #printView{display:block !important;position:relative;background:#
           </div>
           <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">給餌方法</span>
             <div class="btn-group" id="iFeedMethodBtns" style="flex:1">
-              <button data-v="bowl">🍽 器</button>
-              <button data-v="bowl_high">🍽⬆ 器(高め)</button>
-              <button data-v="tube">💉 経管 (NG/EG)</button>
-              <button data-v="peg">🫃 胃瘻 (PEG)</button>
-              <button data-v="spoon">🥄 スプーン</button>
-              <button data-v="hand">✋ 手</button>
-              <button data-v="syringe">💧 シリンジ</button>
+              <button data-v="bowl" style="box-shadow:inset 5px 0 0 #555;padding-left:14px">器</button>
+              <button data-v="bowl_high" style="box-shadow:inset 5px 0 0 #888;padding-left:14px">器(高め)</button>
+              <button data-v="tube" style="box-shadow:inset 5px 0 0 #2980b9;padding-left:14px">経管 (NG/EG)</button>
+              <button data-v="peg" style="box-shadow:inset 5px 0 0 #27ae60;padding-left:14px">胃瘻 (PEG)</button>
+              <button data-v="spoon" style="box-shadow:inset 5px 0 0 #7b4f9e;padding-left:14px">スプーン</button>
+              <button data-v="hand" style="box-shadow:inset 5px 0 0 #a06845;padding-left:14px">手</button>
+              <button data-v="syringe" style="box-shadow:inset 5px 0 0 #d68910;padding-left:14px">シリンジ</button>
             </div>
           </div>
           <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">フード処理</span>
             <div class="btn-group" id="iFoodPrepBtns" style="flex:1">
-              <button data-v="dry">🌾 そのまま</button>
-              <button data-v="soaked">💧 ふやかし</button>
-              <button data-v="warm">🔥 温め</button>
-              <button data-v="mashed">🥣 ペースト</button>
+              <button data-v="dry" style="box-shadow:inset 5px 0 0 #555;padding-left:14px">そのまま</button>
+              <button data-v="soaked" style="box-shadow:inset 5px 0 0 #2980b9;padding-left:14px">ふやかし</button>
+              <button data-v="warm" style="box-shadow:inset 5px 0 0 #c0392b;padding-left:14px">温め</button>
+              <button data-v="mashed" style="box-shadow:inset 5px 0 0 #a06845;padding-left:14px">ペースト</button>
             </div>
           </div>
           <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">排泄場所</span>
             <div class="btn-group" id="iToiletBtns" style="flex:1">
-              <button data-v="indoor">🏨 ケージ</button>
-              <button data-v="outdoor">🐕 散歩</button>
-              <button data-v="both">両方OK</button>
+              <button data-v="indoor" style="box-shadow:inset 5px 0 0 #7a8aa5;padding-left:14px">ケージ</button>
+              <button data-v="outdoor" style="box-shadow:inset 5px 0 0 #27ae60;padding-left:14px">散歩</button>
+              <button data-v="both" style="box-shadow:inset 5px 0 0 #5d80b3;padding-left:14px">両方OK</button>
             </div>
           </div>
         </div>
@@ -1567,6 +1580,17 @@ body.printing #printView{display:block !important;position:relative;background:#
         <button class="btn btn-sec btn-sm" onclick="roundNext()" id="rwSkip">スキップ</button>
         <button class="btn btn-sm" onclick="roundNext()" id="rwNext" style="background:linear-gradient(135deg,#16a085 0%,#27ae60 100%)">次へ →</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- RER MULTIPLIER (IER) PICKER -->
+<div class="modal-bg" id="coeffModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-hdr">📋 RER係数 (IER) 早見表 <button class="modal-x" onclick="closeModal('coeffModal')">×</button></div>
+    <div class="modal-body" id="coeffPickerBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal('coeffModal')">閉じる</button>
     </div>
   </div>
 </div>
@@ -2155,6 +2179,50 @@ function onBirthdayInput(el){
 }
 function autoExpand(el){ if (!el) return; el.style.height='auto'; el.style.height = el.scrollHeight + 'px' }
 
+/* RER multiplier (IER) presets */
+const COEFF_PRESETS = [
+  { group: '体重管理', items: [
+    { v: 0.8, label: '減量目標・肥満症' },
+    { v: 1.0, label: '維持・健常成犬猫' },
+  ]},
+  { group: '入院・病態時 (IER)', items: [
+    { v: 1.0, label: '安静時・NPO・状態安定' },
+    { v: 1.1, label: 'ケージ安静・軽度活動' },
+    { v: 1.2, label: '手術後回復・軽度ストレス' },
+    { v: 1.3, label: '中等度疾患・外傷' },
+    { v: 1.4, label: '重症・敗血症' },
+    { v: 1.5, label: '大手術後・重度外傷' },
+    { v: 1.6, label: '熱傷・終末期管理' },
+  ]},
+  { group: '特殊状況', items: [
+    { v: 2.0, label: '成長期 (子犬・子猫)' },
+    { v: 2.5, label: '妊娠後期' },
+    { v: 4.0, label: '授乳期 (頭数で1.6〜6.0)' },
+  ]},
+];
+function openCoeffPicker(){
+  const c = document.getElementById('coeffPickerBody');
+  c.innerHTML = COEFF_PRESETS.map(g=>`
+    <div class="coeff-group">
+      <div class="coeff-group-title">${escapeHtml(g.group)}</div>
+      <div class="coeff-items">
+        ${g.items.map(it=>`<button class="coeff-item" onclick="applyCoeff(${it.v})">
+          <span class="coeff-v">${it.v}</span>
+          <span class="coeff-l">${escapeHtml(it.label)}</span>
+        </button>`).join('')}
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('coeffModal').classList.add('on');
+}
+function applyCoeff(v){
+  document.getElementById('iRerMult').value = v;
+  recalcCarePlan();
+  if (currentId){ pushUndo('係数変更'); saveCurrent(false) }
+  closeModal('coeffModal');
+  toast(`係数 ${v} を適用`,'ok');
+}
+
 /* Nutrition / care plan calculation */
 function recalcCarePlan(){
   const p = state.patients[currentId]; if (!p) return;
@@ -2602,7 +2670,7 @@ function renderIoGrid(){
   html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
   // 給餌方法
   const feedDef = p.carePlan?.feedMethod || '';
-  const FEED_LABELS = {bowl:'🍽器', bowl_high:'🍽⬆高', tube:'💉経管', peg:'🫃胃瘻', spoon:'🥄スプ', hand:'✋手', syringe:'💧ｼﾘﾝｼﾞ'};
+  const FEED_LABELS = {bowl:'器', bowl_high:'器高', tube:'経管', peg:'胃瘻', spoon:'ｽﾌﾟ', hand:'手', syringe:'ｼﾘ'};
   html += `<tr><th class="label">給餌方法</th>`;
   times.forEach(t=>{
     const io = findRecordAt(p.inout, t);
@@ -2677,7 +2745,7 @@ function renderIoGrid(){
   html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
   // 排泄場所
   const toiletDef = p.carePlan?.toilet || '';
-  const TOILET_LABELS = {indoor:'🏨ケージ', outdoor:'🐕散歩', pad:'パッド', other:'その他'};
+  const TOILET_LABELS = {indoor:'ケージ', outdoor:'散歩', pad:'パッド', other:'その他'};
   html += `<tr><th class="label">排泄場所</th>`;
   times.forEach(t=>{
     const io = findRecordAt(p.inout, t);
