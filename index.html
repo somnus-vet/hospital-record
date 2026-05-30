@@ -973,11 +973,11 @@ body.printing #printView{display:block !important;position:relative;background:#
             <div class="btn-group" id="iFeedMethodBtns" style="flex:1">
               <button data-v="bowl">🍽 器</button>
               <button data-v="bowl_high">🍽⬆ 器(高め)</button>
-              <button data-v="tube">🩺 経管 (NG/EG)</button>
-              <button data-v="peg">⚪ 胃瘻 (PEG)</button>
+              <button data-v="tube">💉 経管 (NG/EG)</button>
+              <button data-v="peg">🫃 胃瘻 (PEG)</button>
               <button data-v="spoon">🥄 スプーン</button>
               <button data-v="hand">✋ 手</button>
-              <button data-v="syringe">💉 シリンジ</button>
+              <button data-v="syringe">💧 シリンジ</button>
             </div>
           </div>
           <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">フード処理</span>
@@ -990,8 +990,8 @@ body.printing #printView{display:block !important;position:relative;background:#
           </div>
           <div class="frow" style="align-items:flex-start"><span class="flabel" style="margin-top:9px">排泄場所</span>
             <div class="btn-group" id="iToiletBtns" style="flex:1">
-              <button data-v="indoor">🏠 室内可</button>
-              <button data-v="outdoor">🚶 散歩のみ</button>
+              <button data-v="indoor">🏨 ケージ</button>
+              <button data-v="outdoor">🐕 散歩</button>
               <button data-v="both">両方OK</button>
             </div>
           </div>
@@ -2602,7 +2602,7 @@ function renderIoGrid(){
   html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
   // 給餌方法
   const feedDef = p.carePlan?.feedMethod || '';
-  const FEED_LABELS = {bowl:'🍽器', bowl_high:'🍽⬆高', tube:'🩺経管', peg:'⚪胃瘻', spoon:'🥄スプ', hand:'✋手', syringe:'💉ｼﾘﾝｼﾞ'};
+  const FEED_LABELS = {bowl:'🍽器', bowl_high:'🍽⬆高', tube:'💉経管', peg:'🫃胃瘻', spoon:'🥄スプ', hand:'✋手', syringe:'💧ｼﾘﾝｼﾞ'};
   html += `<tr><th class="label">給餌方法</th>`;
   times.forEach(t=>{
     const io = findRecordAt(p.inout, t);
@@ -2677,7 +2677,7 @@ function renderIoGrid(){
   html += `<td class="time" style="background:var(--bg-soft)"></td></tr>`;
   // 排泄場所
   const toiletDef = p.carePlan?.toilet || '';
-  const TOILET_LABELS = {indoor:'🏠室内', outdoor:'🚶散歩', pad:'パッド', other:'その他'};
+  const TOILET_LABELS = {indoor:'🏨ケージ', outdoor:'🐕散歩', pad:'パッド', other:'その他'};
   html += `<tr><th class="label">排泄場所</th>`;
   times.forEach(t=>{
     const io = findRecordAt(p.inout, t);
