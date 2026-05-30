@@ -2790,6 +2790,13 @@ function toggleMedAt(key, t){
     // ✓ → 削除（予定取消）
     pushUndo('投薬予定削除');
     p.meds.splice(idx, 1);
+    // この時刻の他の薬剤・輸液記録がなければ、時刻列を保持するためのプレースホルダーを追加
+    const hasOtherMed = p.meds.some(m=>m.at===t);
+    const hasFluid = (p.fluids||[]).some(f=>f.at===t);
+    if (!hasOtherMed && !hasFluid){
+      p.fluids = p.fluids||[];
+      p.fluids.push({ at:t, product:'', rate:null, total:null, note:'__placeholder__' });
+    }
   }
   saveState(); renderTxGrid(); updateTabAlertDots();
 }
