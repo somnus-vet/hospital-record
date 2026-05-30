@@ -483,6 +483,15 @@ body{font-family:-apple-system,'Helvetica Neue','Hiragino Sans','Yu Gothic UI',A
 .hgrid-tbl td.med-cell.pending{color:var(--amber);background:#fef9ed}
 .hgrid-tbl td.med-cell.overdue{background:var(--red-soft);color:var(--red);animation:pulse 1.6s ease-in-out infinite}
 .hgrid-tbl td.med-cell.empty{color:#d4d8df;font-size:18px;font-weight:400}
+.hgrid-tbl td.med-cell.held{background:#e6e6e6;color:#555;font-weight:800;position:relative}
+.hgrid-tbl td.med-cell.held::after{content:'';position:absolute;left:8px;right:8px;top:50%;height:2px;background:#7a7a7a;pointer-events:none}
+.hgrid-tbl td.med-cell.held .mc-staff{text-decoration:none}
+
+/* Hold reason picker buttons */
+.hold-reason-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.hold-reason-list button{padding:14px 8px;background:var(--bg-soft);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;color:var(--text);font-family:inherit;min-height:50px}
+.hold-reason-list button:active{background:#9aa3b8;color:#fff;border-color:#9aa3b8;transform:scale(.96)}
+.hold-reason-list button.skip{background:#fff;color:var(--muted);font-weight:600;font-size:12px;grid-column:1/-1;min-height:38px}
 .hgrid-tbl td.fluid-cell{background:#f3eaf7;font-weight:700;color:var(--sys-tx);font-size:12.5px;cursor:pointer}
 .hgrid-tbl td.fluid-cell.zero{color:#c5cad3;background:#fff}
 
@@ -1563,6 +1572,28 @@ body.printing #printView{display:block !important;position:relative;background:#
   </div>
 </div>
 
+<!-- HOLD REASON PICKER (休薬) -->
+<div class="modal-bg" id="holdReasonModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-hdr">⊘ 休薬理由 <button class="modal-x" onclick="closeModal('holdReasonModal')">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px" id="holdReasonTarget">—</div>
+      <div class="hold-reason-list">
+        <button onclick="confirmHold('体調悪化')">体調悪化</button>
+        <button onclick="confirmHold('医師指示')">医師指示</button>
+        <button onclick="confirmHold('飼い主希望')">飼い主希望</button>
+        <button onclick="confirmHold('副作用')">副作用</button>
+        <button onclick="confirmHold('一時中断')">一時中断</button>
+        <button onclick="confirmHold('処置中')">処置中</button>
+        <button class="skip" onclick="confirmHold('')">理由なし／後で記入</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal('holdReasonModal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <!-- STOOL SCORE PICKER (Bristol/Purina) -->
 <div class="modal-bg" id="stoolModal">
   <div class="modal">
@@ -1724,7 +1755,7 @@ function renderList(){
     const days = p.admittedAt ? Math.floor((Date.now()-new Date(p.admittedAt).getTime())/86400000)+1 : '?';
     const last = lastVital(p);
     const al = last ? checkAlertsFor(p, last) : [];
-    const overdue = (p.meds||[]).filter(m=>!m.done && m.at && new Date(m.at) < new Date()).length;
+    const overdue = (p.meds||[]).filter(m=>!m.done && !m.held && m.at && new Date(m.at) < new Date()).length;
     const alertCnt = al.length + overdue;
     const cls = alertCnt ? (al.length?'alert':'warn') : '';
     // vital pills
@@ -2255,7 +2286,7 @@ function updateTabAlertDots(){
   const p = state.patients[currentId]; if (!p) return;
   const last = lastVital(p);
   const al = last ? checkAlertsFor(p, last) : [];
-  const overdue = (p.meds||[]).filter(m=>!m.done && m.at && new Date(m.at) < new Date());
+  const overdue = (p.meds||[]).filter(m=>!m.done && !m.held && m.at && new Date(m.at) < new Date());
   const vTab = document.querySelector('.tab[data-tab="vitals"]');
   const txTab = document.querySelector('.tab[data-tab="tx"]');
   const hoTab = document.querySelector('.tab[data-tab="handover"]');
@@ -2746,11 +2777,22 @@ function renderTxGrid(){
       times.forEach(t=>{
         const e = g.entries.find(x=>x.at===t);
         if (e){
-          const overdue = !e.done && new Date(e.at) < now;
-          const cls = e.done ? 'done' : overdue ? 'overdue' : 'pending';
-          const sym = e.done ? '✓' : overdue ? '⚠' : '⏰';
+          let cls, sym, title;
+          if (e.held){
+            cls = 'held'; sym = '⊘';
+            title = '休薬' + (e.holdReason ? ': '+e.holdReason : '');
+          } else if (e.done){
+            cls = 'done'; sym = '✓';
+            title = e.staff || '実施済';
+          } else if (new Date(e.at) < now){
+            cls = 'overdue'; sym = '⚠';
+            title = '予定時刻超過 (押し忘れ or 未確認)';
+          } else {
+            cls = 'pending'; sym = '⏰';
+            title = '予定';
+          }
           const staff = e.staff || '';
-          html += `<td class="time med-cell ${cls}" onclick="toggleMedAt('${escapeHtml(key)}','${t}')" title="${escapeHtml(staff)}">${sym}${staff?`<span class="mc-staff">${escapeHtml(staff)}</span>`:''}</td>`;
+          html += `<td class="time med-cell ${cls}" onclick="toggleMedAt('${escapeHtml(key)}','${t}')" title="${escapeHtml(title)}">${sym}${staff?`<span class="mc-staff">${escapeHtml(staff)}</span>`:''}</td>`;
         } else {
           html += `<td class="time med-cell empty" onclick="addMedAt('${escapeHtml(key)}','${t}')">＋</td>`;
         }
@@ -2782,23 +2824,52 @@ function toggleMedAt(key, t){
   const idx = p.meds.findIndex(x=>`${x.name||'(無名)'}__${x.dose||''}`===key && x.at===t);
   if (idx < 0) return;
   const e = p.meds[idx];
-  if (!e.done){
-    // ⏰/⚠ → ✓ (実施)
-    pushUndo('投薬完了');
-    e.done = true;
-  } else {
-    // ✓ → 削除（予定取消）
-    pushUndo('投薬予定削除');
+  if (e.held){
+    // ⊘ → 削除
+    pushUndo('予定削除');
     p.meds.splice(idx, 1);
-    // この時刻の他の薬剤・輸液記録がなければ、時刻列を保持するためのプレースホルダーを追加
+    // 時刻列を保持
     const hasOtherMed = p.meds.some(m=>m.at===t);
     const hasFluid = (p.fluids||[]).some(f=>f.at===t);
     if (!hasOtherMed && !hasFluid){
       p.fluids = p.fluids||[];
       p.fluids.push({ at:t, product:'', rate:null, total:null, note:'__placeholder__' });
     }
+    saveState(); renderTxGrid(); updateTabAlertDots();
+  } else if (e.done){
+    // ✓ → ⊘ (休薬理由ピッカー)
+    openHoldReason(key, t);
+  } else {
+    // ⏰/⚠ → ✓ (実施)
+    pushUndo('投薬完了');
+    e.done = true;
+    e.held = false;
+    saveState(); renderTxGrid(); updateTabAlertDots();
   }
-  saveState(); renderTxGrid(); updateTabAlertDots();
+}
+
+let pendingHoldKey = null, pendingHoldTime = null;
+function openHoldReason(key, t){
+  pendingHoldKey = key;
+  pendingHoldTime = t;
+  const [name, dose] = key.split('__');
+  document.getElementById('holdReasonTarget').textContent = `${name||'(無名)'} ${dose||''} @ ${fmtDT(t)}`;
+  document.getElementById('holdReasonModal').classList.add('on');
+}
+function confirmHold(reason){
+  if (!pendingHoldKey || !pendingHoldTime){ closeModal('holdReasonModal'); return; }
+  const p = state.patients[currentId];
+  const e = (p.meds||[]).find(x=>`${x.name||'(無名)'}__${x.dose||''}`===pendingHoldKey && x.at===pendingHoldTime);
+  if (e){
+    pushUndo('休薬記録');
+    e.done = false;
+    e.held = true;
+    e.holdReason = reason || '';
+    saveState(); renderTxGrid(); updateTabAlertDots();
+    toast(reason ? `休薬 (${reason})` : '休薬として記録', 'ok');
+  }
+  closeModal('holdReasonModal');
+  pendingHoldKey = null; pendingHoldTime = null;
 }
 function addMedAt(key, t){
   pushUndo('投薬予定追加');
@@ -3402,7 +3473,7 @@ function renderAlerts(){
   const area = document.getElementById('alertsArea'); if (!area) return;
   const last = lastVital(p); const vAl = last ? checkAlertsFor(p, last) : [];
   const now = new Date();
-  const overdue = (p.meds||[]).filter(m=>!m.done && m.at && new Date(m.at) < now);
+  const overdue = (p.meds||[]).filter(m=>!m.done && !m.held && m.at && new Date(m.at) < now);
   let html = '';
   if (vAl.length) html += `<div class="alert-banner"><div class="ai">⚠️</div><div><div class="at">バイタル異常値（直近）</div><div class="am">${vAl.join(' / ')}</div></div></div>`;
   if (overdue.length) html += `<div class="alert-banner warn"><div class="ai">⏰</div><div><div class="at">投薬予定超過 ${overdue.length}件</div><div class="am">${overdue.slice(0,3).map(m=>`${escapeHtml(m.name||'')} ${fmtDT(m.at)}`).join(' / ')}${overdue.length>3?' …':''}</div></div></div>`;
@@ -3426,7 +3497,7 @@ function renderHandover(){
 function renderHoAlerts(p, now){
   const last = lastVital(p);
   const vAl = last ? checkAlertsFor(p, last) : [];
-  const overdue = (p.meds||[]).filter(m=>!m.done && m.at && new Date(m.at) < new Date(now));
+  const overdue = (p.meds||[]).filter(m=>!m.done && !m.held && m.at && new Date(m.at) < new Date(now));
   const urgentLabs = (p.labs||[]).filter(l=>l.urgent && l.status!=='reported');
   const abnLabs = (p.labs||[]).filter(l=>l.status==='reported' && (l.result||'').match(/[↑↓]/));
   let html = '';
@@ -3541,7 +3612,7 @@ function renderHoIoSum(p, now, windowMs){
 function renderHoSchedule(p, now, windowMs){
   const horizon = now + windowMs;
   const events = [];
-  (p.meds||[]).filter(m=>!m.done && m.at).forEach(m=>{
+  (p.meds||[]).filter(m=>!m.done && !m.held && m.at).forEach(m=>{
     const t = new Date(m.at).getTime();
     if (t>=now && t<=horizon) events.push({ at:m.at, icon:'💉', text:`${m.name||''} ${m.dose||''}`, t });
   });
@@ -3579,11 +3650,13 @@ function renderHoFeed(p, now, windowMs){
     events.push({ at:v.at, icon:'📊', text:parts.join(' / '), staff:v.staff, abn });
   });
   (p.meds||[]).filter(m=>m.at && new Date(m.at).getTime()>=cutoff).forEach(m=>{
-    const overdueAbn = !m.done && new Date(m.at)<new Date(now);
+    const overdueAbn = !m.done && !m.held && new Date(m.at)<new Date(now);
+    const icon = m.held ? '⊘' : (m.done ? '✅' : (overdueAbn ? '⏰' : '💉'));
+    const stateText = m.held ? ' (休薬' + (m.holdReason ? ': '+m.holdReason : '') + ')' : (m.done ? '' : ' ' + (overdueAbn ? '(時刻超過)' : '(予定)'));
     events.push({
       at:m.at,
-      icon: m.done?'✅':(overdueAbn?'⏰':'💉'),
-      text: `${m.name||''} ${m.dose||''}${m.done?'':' '+(overdueAbn?'(時刻超過)':'(予定)')}`,
+      icon,
+      text: `${m.name||''} ${m.dose||''}${stateText}`,
       staff: m.staff,
       abn: overdueAbn
     });
@@ -4568,7 +4641,7 @@ setInterval(()=>{
         }
       }
     }
-    (p.meds||[]).filter(m=>!m.done && m.at).forEach(m=>{
+    (p.meds||[]).filter(m=>!m.done && !m.held && m.at).forEach(m=>{
       if (new Date(m.at) <= new Date()){
         const key = 'm_'+p.id+'_'+m.at+'_'+(m.name||'');
         if (!cooldown[key] || (now-cooldown[key])>NOTIF_COOLDOWN_MS){
