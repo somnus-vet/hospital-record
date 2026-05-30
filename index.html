@@ -1005,7 +1005,6 @@ body.printing #printView{display:block !important;position:relative;background:#
             <button data-v="normal">普通</button>
             <button data-v="cooperative">協力的</button>
             <button data-v="claim">クレーマー気質</button>
-            <button data-v="aggressive">攻撃的</button>
             <button data-v="over">過保護</button>
             <button data-v="anxious">心配性</button>
             <button data-v="low">理解度低い</button>
@@ -1943,7 +1942,6 @@ const OWNER_COLORS = {
   normal:'#27ae60',         // 普通 = 緑
   cooperative:'#ff69b4',    // 協力的 = ピンク
   claim:'#c0392b',          // クレーマー = 赤
-  aggressive:'#5e0000',     // 攻撃的 = 暗赤
   over:'#d68910',           // 過保護 = 橙
   anxious:'#5d80b3',        // 心配性 = 青
   low:'#f1c40f',            // 理解度低い = 黄
@@ -2029,8 +2027,7 @@ function openLegend(){
   html += sec('飼い主の対応注意');
   html += row(OWNER_COLORS.normal,'普通','緑');
   html += row(OWNER_COLORS.cooperative,'協力的','ピンク');
-  html += row(OWNER_COLORS.claim,'クレーマー気質','明赤');
-  html += row(OWNER_COLORS.aggressive,'攻撃的','暗赤');
+  html += row(OWNER_COLORS.claim,'クレーマー気質','赤');
   html += row(OWNER_COLORS.over,'過保護','橙');
   html += row(OWNER_COLORS.anxious,'心配性','青');
   html += row(OWNER_COLORS.low,'理解度低い','黄');
